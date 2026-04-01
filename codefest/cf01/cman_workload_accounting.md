@@ -35,9 +35,9 @@ input x output = MAC
 ### e.) Compute the total activation memory in bytes needed to store the input and all layer outputs simultaneously (FP32).
 
 
-784 + 256 + 128 + 10 = 1178  
+784 + 256 + 128 + 10 = 1178 activation memory 
 
-1178 x 4 = 4712  
+1178 x 4 = 4712 bytes
 
 ---
 
