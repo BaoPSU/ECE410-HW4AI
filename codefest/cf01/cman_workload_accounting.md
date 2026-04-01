@@ -1,30 +1,85 @@
-Codefest 1 cf01 CMAN
-Bao Nguyen 
+# Codefest 1 – CF01 CMAN Workload Accounting  
+**Name:** Bao Nguyen  
 
-a.) For each layer, compute the number of multiply-accumulate operations (MACs). Show the formula
-and the substituted values.
-input x output = MAC
-784 x 256 = 200704
-256 x 128 = 32768
-128 x 10 = 1280
+---
 
-b.) Sum the MACs across all three layers to get the total MACs for one forward pass.
-200704 + 32768 + 1280 = 234752 total MAC
+## (a) Per-Layer MACs
 
+Formula:  
+\[
+\text{MACs} = \text{input size} \times \text{output size}
+\]
 
-c.) Compute the total number of trainable parameters (weights only, no biases).
-200704 + 32768 + 1280 = 234752
+| Layer        | Calculation        | MACs   |
+|-------------|------------------|--------|
+| Layer 1     | 784 × 256        | 200,704 |
+| Layer 2     | 256 × 128        | 32,768  |
+| Layer 3     | 128 × 10         | 1,280   |
 
-d.) Compute the total weight memory in bytes (FP32).
-234752 x 4 bytes = 939008 weight
+---
 
+## (b) Total MACs
 
-e.) Compute the total activation memory in bytes needed to store the input and all layer outputs
-simultaneously (FP32).
-784 + 256 + 128 + 10 = 1178 layer size x 4 = 4712
+\[
+200,704 + 32,768 + 1,280 = 234,752
+\]
 
-f.) Compute arithmetic intensity as: (2 × total MACs) / (weight bytes + activation bytes).
-(2 x 234752) / (939008 + 4712) = 0.4975
+**Total MACs = 234,752**
 
+---
 
+## (c) Total Parameters (Weights Only)
 
+Same as MACs for fully connected layers:
+
+\[
+200,704 + 32,768 + 1,280 = 234,752
+\]
+
+**Total Parameters = 234,752**
+
+---
+
+## (d) Weight Memory (FP32)
+
+Each weight = 4 bytes
+
+\[
+234,752 \times 4 = 939,008 \text{ bytes}
+\]
+
+**Weight Memory = 939,008 bytes**
+
+---
+
+## (e) Activation Memory (FP32)
+
+Total activations stored simultaneously:
+
+\[
+784 + 256 + 128 + 10 = 1,178
+\]
+
+\[
+1,178 \times 4 = 4,712 \text{ bytes}
+\]
+
+**Activation Memory = 4,712 bytes**
+
+---
+
+## (f) Arithmetic Intensity
+
+Formula:
+
+\[
+\frac{2 \times \text{Total MACs}}{\text{Weight Memory} + \text{Activation Memory}}
+\]
+
+\[
+\frac{2 \times 234,752}{939,008 + 4,712} = 0.4975
+\]
+
+**Arithmetic Intensity ≈ 0.4975 FLOP/byte**
+
+---
