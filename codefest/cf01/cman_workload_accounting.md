@@ -34,6 +34,7 @@ input x output = MAC
 
 ### e.) Compute the total activation memory in bytes needed to store the input and all layer outputs simultaneously (FP32).
 
+
 784 + 256 + 128 + 10 = 1178  
 
 1178 x 4 = 4712  
@@ -42,4 +43,6 @@ input x output = MAC
 
 ### f.) Compute arithmetic intensity:
 
+(2 × total MACs) / (weight bytes + activation bytes)
+ 
 (2 x 234752) / (939008 + 4712) = 0.4975  
