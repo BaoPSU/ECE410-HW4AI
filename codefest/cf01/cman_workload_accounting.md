@@ -22,13 +22,13 @@ input x output = MAC
 
 ### c.) Compute the total number of trainable parameters (weights only, no biases).
 
-200704 + 32768 + 1280 = 234752  
+200704 + 32768 + 1280 = 234752 weight 
 
 ---
 
 ### d.) Compute the total weight memory in bytes (FP32).
 
-234752 x 4 bytes = 939008 weight  
+234752 x 4 bytes = 939008 Bytes  
 
 ---
 
