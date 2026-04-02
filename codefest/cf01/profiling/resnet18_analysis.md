@@ -14,18 +14,18 @@ ECE 410/510 Spring 2026
 
 ## Arithmetic Intensity
 
-Selected layer: Conv2d: 3-29
+Selected layer: Conv2d: 3-29  
 
 MACs = 115,605,504  
 
-Weight memory:
+Weight memory:  
 589,824 × 4 = 2,359,296 bytes  
 
-Activation memory:
+Activation memory:  
 (256 × 14 × 14 × 2) × 4 = 401,408 bytes  
 
-Total memory:
+Total memory:  
 2,359,296 + 401,408 = 2,760,704 bytes  
 
-Arithmetic Intensity:
+Arithmetic Intensity:  
 (2 × 115,605,504) / 2,760,704 ≈ 83.76
