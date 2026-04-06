@@ -60,9 +60,9 @@ ECE 410/510 Spring 2026
 
 ### Arithmetic Intensity
 
-\[
-AI = \frac{\text{FLOPs}}{\text{Total Bytes}} = \frac{236,027,904}{3,851,008} \approx 61.29 \ \text{FLOP/byte}
-\]
+AI = FLOPs / Total Bytes  
+   = 236,027,904 / 3,851,008  
+   ≈ 61.29 FLOP/byte
 
 ---
 
