@@ -68,4 +68,4 @@ AI = \frac{\text{FLOPs}}{\text{Total Bytes}} = \frac{236,027,904}{3,851,008} \ap
 
 ### Interpretation
 
-This layer has moderate arithmetic intensity (~61 FLOP/byte). Under the no-reuse assumption, it is likely memory-bandwidth bound on modern hardware. In practice, data reuse (tiling and caching) can increase effective arithmetic intensity and shift execution toward the compute-bound regime.
+This layer does a decent amount of computation compared to how much data it moves, but it’s still mostly limited by memory speed. If the system can reuse data better (like keeping it in cache), then it can run faster and become more compute-focused.
