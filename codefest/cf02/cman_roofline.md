@@ -72,6 +72,27 @@ For vector length = 4,194,304:
 
 ---
 
+## Roofline Diagram
+
+![CMAN Roofline Model](cman_roofline.png)
+
+## How to Read the Roofline Model
+
+**The two lines form the "roofline":**
+
+- **Diagonal line** — the memory bandwidth limit. If a kernel doesn't do much math per byte it loads, it's stuck here. Performance = AI × bandwidth.
+- **Flat horizontal line at 10,000 GFLOP/s** — the compute ceiling. No matter how much data reuse you have, you can't go faster than the hardware's peak compute.
+- **Ridge point (31.25, 10,000)** — where the two lines meet. This is the minimum arithmetic intensity needed to be compute-bound.
+
+**The two dots are the kernels:**
+
+- **Vector Add (left dot, AI ≈ 0.08)** — sits way left of the ridge point, deep in the memory-bound region. It does almost no math per byte loaded (1 addition per 12 bytes). Making the compute faster won't help — you need more memory bandwidth.
+- **GEMM (right dot, AI ≈ 170)** — sits far right of the ridge point, in the compute-bound region. It reuses data heavily so memory isn't the bottleneck. You need more compute throughput to go faster.
+
+**Key insight:** a kernel's position tells you what's limiting it, which tells you what to fix.
+
+---
+
 ## Summary
 
 | Kernel      | FLOPs         | Bytes       | AI (FLOP/byte) | Attainable GFLOP/s | Bound         |
