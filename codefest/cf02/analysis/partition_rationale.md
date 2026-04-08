@@ -1,4 +1,4 @@
-# HW/SW Partition Proposal
+# HW/SW Partition Proposal — K-Means Clustering
 Bao Nguyen  
 ECE 410/510 Spring 2026
 
@@ -6,32 +6,38 @@ ECE 410/510 Spring 2026
 
 ## (a) Which kernel(s) to accelerate in hardware and why
 
-The kernel selected for hardware acceleration is the **3×3 Conv2d layer with 512 input and 512 output channels at 7×7 spatial resolution**, which corresponds to the repeated convolutions in ResNet-18's layer4. The `torch.profiler` output identified this as the dominant bottleneck at **19.13% of total CPU time**, accounting for the largest single share of runtime across 10 forward passes.
+The kernel selected for hardware acceleration is the **pairwise distance computation** in K-Means:
 
-The roofline analysis supports this choice. With an arithmetic intensity of **23.99 FLOP/byte** and a CPU ridge point of **18.23 FLOP/byte**, the kernel sits in the compute-bound region on the i9-12900H. Despite being compute-bound, the CPU only achieves ~61 GFLOP/s measured throughput against a theoretical ceiling of 1,400 GFLOP/s — a large efficiency gap caused by poor SIMD utilization on small 7×7 spatial maps. A dedicated systolic array accelerator can close this gap by keeping compute units fully utilized with data tiled on-chip.
+```python
+distances = np.sum((points[:, np.newaxis] - centroids) ** 2, axis=2)
+```
+
+The `cProfile` output identifies this as the dominant bottleneck — `numpy.ufunc.reduce` accounts for **5.57 seconds out of 39.3 seconds total** across 10 runs (N=50,000, D=64, K=8). It is called every iteration and scales as O(N × K × D), making it the clear compute target.
+
+The roofline analysis supports this choice. With an arithmetic intensity of **2.67 FLOP/byte**, the kernel sits deep in the memory-bound region on the i9-12900H (ridge point = 9.11 FLOP/byte). The attainable performance ceiling is only ~205 GFLOP/s, far below peak compute. A near-memory accelerator with HBM3-class bandwidth (4 TB/s) shifts the ridge point to 2.5 FLOP/byte, placing the kernel just above the ridge point and making it **compute-bound** — meaning the accelerator can reach near-peak throughput for this kernel.
 
 ## (b) What the software baseline will continue to handle
 
-The software baseline running on the CPU will continue to handle all non-compute-intensive stages: data loading and preprocessing, batch normalization, ReLU activations, max pooling, the fully connected classifier layer, and the overall training loop including gradient computation and weight updates. These operations are either memory-bound with low arithmetic intensity or too small to justify dedicated hardware.
+The software baseline on the CPU will handle: centroid initialization, the convergence check (`np.allclose`), centroid update (`mean` per cluster), and overall loop control. These operations are infrequent or operate on small data (K × D centroid arrays), so accelerating them would yield negligible benefit.
 
 ## (c) Interface bandwidth required
 
-The dominant kernel moves **9,637,888 bytes** per forward pass inference. At a target accelerator throughput of 50 TFLOP/s, one forward pass completes in approximately:
+Per iteration, the kernel transfers approximately **28.8 MB** of data. At a target accelerator throughput of 10 TFLOP/s, one distance computation completes in:
 
 ```
-time = FLOPs / throughput = 231,211,008 / (50 × 10^12) ≈ 4.6 μs
+time = FLOPs / throughput = 76,800,000 / (10 × 10^12) ≈ 7.7 μs
 ```
 
 Required interface bandwidth to avoid becoming interface-bound:
 
 ```
-BW_needed = 9,637,888 bytes / 4.6 μs ≈ 2.1 TB/s
+BW_needed = 28,804,096 bytes / 7.7 μs ≈ 3.74 TB/s
 ```
 
-This is on-chip SRAM bandwidth, not PCIe. The accelerator must have at least **2 TB/s of on-chip memory bandwidth** to sustain this throughput. The hypothetical design targets 2 TB/s, which sits right at the boundary — keeping weight buffers on-chip across multiple inference passes would relax this constraint significantly.
+This confirms the accelerator needs **≥ 3.74 TB/s** of memory bandwidth — consistent with the HBM3 target of 4 TB/s in the design. Standard PCIe (64 GB/s) would be a severe bottleneck; HBM or on-chip SRAM with DMA is required.
 
 ## (d) Bound classification and expected change with accelerator
 
-On the current i9-12900H CPU, the dominant kernel is **compute-bound** (AI = 23.99 > ridge point = 18.23). The bottleneck is insufficient compute throughput for the dense 512×512 matrix multiplications.
+On the i9-12900H, the distance kernel is **memory-bound** (AI = 2.67 < ridge 9.11). The CPU cannot feed data fast enough to keep compute units busy.
 
-On the hypothetical accelerator (50 TFLOP/s, 2 TB/s), the ridge point shifts to 25 FLOP/byte. Since AI = 23.99 < 25, the kernel becomes **slightly memory-bound** on the accelerator. This means adding on-chip weight caching (weights are reused across the input spatial positions) would push the effective AI above the ridge point and make the kernel compute-bound again — which is the ideal operating point for a systolic array design.
+On the hypothetical HBM3 accelerator (10 TFLOP/s, 4 TB/s), the ridge point drops to 2.5 FLOP/byte. Since AI = 2.67 > 2.5, the kernel becomes **compute-bound** on the accelerator. This is the key advantage: by pairing high-bandwidth memory with dedicated MAC units, the accelerator eliminates the memory bottleneck and allows the distance computation to run at near-peak arithmetic throughput — a fundamental shift in the performance limiting factor.

@@ -6,48 +6,42 @@ ECE 410/510 Spring 2026
 
 ## Dominant Kernel Identified
 
-From `torch.profiler` output (`project_profile.txt`), the dominant kernel across 10 forward passes is:
+From `cProfile` output (`project_profile.txt`), profiling 10 runs of K-Means on:
+- N = 50,000 points, D = 64 dimensions, K = 8 clusters, max_iters = 20
 
-**`aten::mkldnn_convolution` — Conv2d layer with:**
-- Input shape: `[1, 512, 7, 7]`
-- Weight shape: `[512, 512, 3, 3]`
-- Output shape: `[1, 512, 7, 7]`
-- Self CPU %: **19.13%** (highest of all ops)
-- Total CPU time: ~114 ms across 10 runs
+The dominant kernel is the **pairwise distance computation**:
 
-This corresponds to the 3×3 convolutions in **ResNet-18 layer4** (the final residual block stage).
+```python
+distances = np.sum((points[:, np.newaxis] - centroids) ** 2, axis=2)
+```
+
+This maps to `numpy.ufunc.reduce` in the profiler, accounting for **5.57s out of 39.3s total** (~14% of runtime), and is called 200 times (20 iterations × 10 runs). The outer `kmeans` function self-time (33.15s) is entirely driven by this loop.
 
 ---
 
-## FLOPs Calculation
+## FLOPs Calculation (per iteration)
 
-For a Conv2d layer, the FLOP formula (one multiply + one accumulate per MAC):
+The distance computation performs three operations per element:
 
-```
-FLOPs = 2 × C_in × k_h × k_w × C_out × H_out × W_out
-```
-
-Substituting values (batch=1, C_in=512, k=3, C_out=512, H_out=W_out=7):
-
-```
-FLOPs = 2 × 512 × 3 × 3 × 512 × 7 × 7
-      = 2 × 512 × 9 × 512 × 49
-      = 2 × 115,605,504
-      = 231,211,008 FLOPs
-```
+| Operation | Formula | Count |
+|-----------|---------|-------|
+| Subtract `(points - centroid)` | N × K × D | 50,000 × 8 × 64 = 25,600,000 |
+| Square `(·)²` | N × K × D | 25,600,000 |
+| Sum over D | N × K × (D−1) ≈ N × K × D | 25,600,000 |
+| **Total FLOPs per iteration** | | **76,800,000** |
 
 ---
 
-## Bytes Transferred (No Reuse)
+## Bytes Transferred (No Reuse, per iteration)
 
-Assuming all operands loaded fresh from DRAM (FP32 = 4 bytes each):
+All operands assumed loaded fresh from DRAM (float64 = 8 bytes):
 
 | Operand | Shape | Elements | Bytes |
 |---------|-------|----------|-------|
-| Input feature map | 1 × 512 × 7 × 7 | 25,088 | 100,352 |
-| Weight tensor | 512 × 512 × 3 × 3 | 2,359,296 | 9,437,184 |
-| Output feature map | 1 × 512 × 7 × 7 | 25,088 | 100,352 |
-| **Total** | | | **9,637,888 bytes** |
+| Read points | N × D | 3,200,000 | 25,600,000 |
+| Read centroids | K × D | 512 | 4,096 |
+| Write distances | N × K | 400,000 | 3,200,000 |
+| **Total** | | | **28,804,096 bytes** |
 
 ---
 
@@ -55,19 +49,19 @@ Assuming all operands loaded fresh from DRAM (FP32 = 4 bytes each):
 
 ```
 AI = FLOPs / Bytes
-   = 231,211,008 / 9,637,888
-   ≈ 23.99 FLOP/byte
+   = 76,800,000 / 28,804,096
+   ≈ 2.67 FLOP/byte
 ```
 
 ---
 
 ## Bound Classification
 
-Hardware: Intel Core i9-12900H
-- Peak FP32 compute: ~1,400 GFLOP/s (AVX2 FMA, all cores)
+Hardware: Intel Core i9-12900H  
+- Peak FP64 compute: ~700 GFLOP/s (AVX2 FMA, all cores)
 - Peak DRAM bandwidth: ~76.8 GB/s (DDR5-4800, dual channel)
-- Ridge point: 1,400 / 76.8 ≈ **18.23 FLOP/byte**
+- Ridge point: 700 / 76.8 ≈ **9.11 FLOP/byte**
 
-Since **AI (23.99) > Ridge point (18.23)**, the dominant kernel is **compute-bound** on this hardware.
+Since **AI (2.67) < Ridge point (9.11)**, the dominant kernel is **memory-bound** on this hardware.
 
-Attainable performance ceiling = P_peak = **1,400 GFLOP/s**
+Attainable performance ceiling = B_peak × AI = 76.8 × 2.67 ≈ **205 GFLOP/s**

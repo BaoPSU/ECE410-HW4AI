@@ -1,39 +1,43 @@
-ResNet-18 torch.profiler output (10 forward passes, CPU)
-Sorted by CPU time total
+K-Means cProfile output — 10 runs
+Dataset: N=50000 points, D=64 dimensions, K=8 clusters, max_iters=20
+Sorted by cumulative time
 ================================================================================
 
----------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  --------------------------------------------------------------------------------  ------------  
-                             Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls                                                                      Input Shapes  Total MFLOPs  
----------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  --------------------------------------------------------------------------------  ------------  
-                 resnet18_forward         7.57%      44.320ms       100.00%     585.317ms      58.532ms            10                                                                                []            --  
-                     aten::conv2d         0.07%     402.196us        19.51%     114.214ms       3.807ms            30                            [[1, 512, 7, 7], [512, 512, 3, 3], [], [], [], [], []]      6936.330  
-                aten::convolution         0.08%     464.663us        19.44%     113.812ms       3.794ms            30                    [[1, 512, 7, 7], [512, 512, 3, 3], [], [], [], [], [], [], []]            --  
-               aten::_convolution         0.10%     610.773us        19.37%     113.347ms       3.778ms            30    [[1, 512, 7, 7], [512, 512, 3, 3], [], [], [], [], [], [], [], [], [], [], []]            --  
-         aten::mkldnn_convolution        19.13%     111.982ms        19.26%     112.736ms       3.758ms            30                            [[1, 512, 7, 7], [512, 512, 3, 3], [], [], [], [], []]            --  
-                     aten::conv2d         0.10%     574.109us        15.77%      92.321ms       2.308ms            40                             [[1, 64, 56, 56], [64, 64, 3, 3], [], [], [], [], []]      9248.440  
-                aten::convolution         0.12%     702.278us        15.67%      91.747ms       2.294ms            40                     [[1, 64, 56, 56], [64, 64, 3, 3], [], [], [], [], [], [], []]            --  
-               aten::_convolution         0.15%     893.689us        15.55%      91.045ms       2.276ms            40     [[1, 64, 56, 56], [64, 64, 3, 3], [], [], [], [], [], [], [], [], [], [], []]            --  
-         aten::mkldnn_convolution        15.24%      89.176ms        15.40%      90.151ms       2.254ms            40                             [[1, 64, 56, 56], [64, 64, 3, 3], [], [], [], [], []]            --  
-                     aten::conv2d         0.06%     327.099us        12.75%      74.614ms       2.487ms            30                          [[1, 256, 14, 14], [256, 256, 3, 3], [], [], [], [], []]      6936.330  
-                aten::convolution         0.07%     424.836us        12.69%      74.287ms       2.476ms            30                  [[1, 256, 14, 14], [256, 256, 3, 3], [], [], [], [], [], [], []]            --  
-               aten::_convolution         0.10%     562.489us        12.62%      73.862ms       2.462ms            30  [[1, 256, 14, 14], [256, 256, 3, 3], [], [], [], [], [], [], [], [], [], [], []]            --  
-         aten::mkldnn_convolution        12.41%      72.627ms        12.52%      73.300ms       2.443ms            30                          [[1, 256, 14, 14], [256, 256, 3, 3], [], [], [], [], []]            --  
-                     aten::conv2d         0.06%     350.067us        11.92%      69.750ms       2.325ms            30                          [[1, 128, 28, 28], [128, 128, 3, 3], [], [], [], [], []]      6936.330  
-                aten::convolution         0.08%     455.932us        11.86%      69.400ms       2.313ms            30                  [[1, 128, 28, 28], [128, 128, 3, 3], [], [], [], [], [], [], []]            --  
-               aten::_convolution         0.10%     587.552us        11.78%      68.944ms       2.298ms            30  [[1, 128, 28, 28], [128, 128, 3, 3], [], [], [], [], [], [], [], [], [], [], []]            --  
-         aten::mkldnn_convolution        11.57%      67.695ms        11.68%      68.356ms       2.279ms            30                          [[1, 128, 28, 28], [128, 128, 3, 3], [], [], [], [], []]            --  
-                 aten::max_pool2d         0.04%     206.579us         5.51%      32.274ms       3.227ms            10                                           [[1, 64, 112, 112], [], [], [], [], []]            --  
-    aten::max_pool2d_with_indices         5.48%      32.068ms         5.48%      32.068ms       3.207ms            10                                           [[1, 64, 112, 112], [], [], [], [], []]            --  
-                     aten::conv2d         0.03%     175.047us         4.41%      25.815ms       2.581ms            10                             [[1, 3, 224, 224], [64, 3, 7, 7], [], [], [], [], []]      2360.279  
-                aten::convolution         0.04%     211.264us         4.38%      25.640ms       2.564ms            10                     [[1, 3, 224, 224], [64, 3, 7, 7], [], [], [], [], [], [], []]            --  
-               aten::_convolution         0.04%     257.110us         4.34%      25.428ms       2.543ms            10     [[1, 3, 224, 224], [64, 3, 7, 7], [], [], [], [], [], [], [], [], [], [], []]            --  
-         aten::mkldnn_convolution         4.25%      24.857ms         4.30%      25.171ms       2.517ms            10                             [[1, 3, 224, 224], [64, 3, 7, 7], [], [], [], [], []]            --  
-                     aten::conv2d         0.03%     150.350us         3.61%      21.140ms       2.114ms            10                          [[1, 256, 14, 14], [512, 256, 3, 3], [], [], [], [], []]      1156.055  
-                aten::convolution         0.03%     170.408us         3.59%      20.990ms       2.099ms            10                  [[1, 256, 14, 14], [512, 256, 3, 3], [], [], [], [], [], [], []]            --  
-               aten::_convolution         0.04%     210.927us         3.56%      20.819ms       2.082ms            10  [[1, 256, 14, 14], [512, 256, 3, 3], [], [], [], [], [], [], [], [], [], [], []]            --  
-         aten::mkldnn_convolution         3.48%      20.382ms         3.52%      20.608ms       2.061ms            10                          [[1, 256, 14, 14], [512, 256, 3, 3], [], [], [], [], []]            --  
-                     aten::conv2d         0.02%     123.849us         2.66%      15.562ms       1.556ms            10                          [[1, 128, 28, 28], [256, 128, 3, 3], [], [], [], [], []]      1156.055  
-                     aten::conv2d         0.02%     120.931us         2.65%      15.487ms       1.549ms            10                            [[1, 64, 56, 56], [128, 64, 3, 3], [], [], [], [], []]      1156.055  
-                aten::convolution         0.03%     171.198us         2.64%      15.438ms       1.544ms            10                  [[1, 128, 28, 28], [256, 128, 3, 3], [], [], [], [], [], [], []]            --  
----------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  --------------------------------------------------------------------------------  ------------  
-Self CPU time total: 585.317ms
+         35911 function calls in 39.345 seconds
+
+   Ordered by: cumulative time
+   List reduced from 45 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+       10    0.000    0.000   39.345    3.934 /home/bao/kmeans_project/run_profile.py:15(run_once)
+       10   33.150    3.315   39.345    3.934 /home/bao/kmeans_project/kmeans_demo.py:5(kmeans)
+     4010    5.570    0.001    5.570    0.001 {method 'reduce' of 'numpy.ufunc' objects}
+      210    0.002    0.000    5.002    0.024 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)
+      200    0.002    0.000    5.002    0.025 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2304(sum)
+     1600    0.004    0.000    0.599    0.000 {method 'mean' of 'numpy.ndarray' objects}
+     1600    0.021    0.000    0.596    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:115(_mean)
+      200    0.001    0.000    0.541    0.003 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:1321(argmin)
+      200    0.001    0.000    0.539    0.003 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:48(_wrapfunc)
+      200    0.538    0.003    0.538    0.003 {method 'argmin' of 'numpy.ndarray' objects}
+      200    0.001    0.000    0.029    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/numeric.py:2290(allclose)
+      200    0.014    0.000    0.026    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/numeric.py:2384(isclose)
+     2200    0.007    0.000    0.021    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:86(_wrapreduction_any_all)
+     1600    0.004    0.000    0.018    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2436(any)
+     1600    0.010    0.000    0.012    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:73(_count_reduce_items)
+      600    0.001    0.000    0.008    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2548(all)
+      400    0.002    0.000    0.005    0.000 {method 'all' of 'numpy.generic' objects}
+     4200    0.003    0.000    0.003    0.000 {built-in method builtins.isinstance}
+      200    0.002    0.000    0.002    0.000 {built-in method numpy.array}
+       10    0.000    0.000    0.002    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3287(prod)
+      400    0.000    0.000    0.002    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:64(_all)
+      200    0.001    0.000    0.001    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_ufunc_config.py:472(__enter__)
+     1000    0.001    0.000    0.001    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/numeric.py:2476(<genexpr>)
+     2200    0.001    0.000    0.001    0.000 {built-in method numpy.asanyarray}
+     3200    0.001    0.000    0.001    0.000 {built-in method builtins.issubclass}
+     2410    0.001    0.000    0.001    0.000 {method 'items' of 'dict' objects}
+      400    0.001    0.000    0.001    0.000 {built-in method builtins.abs}
+     1600    0.001    0.000    0.001    0.000 {built-in method numpy.lib.array_utils.normalize_axis_index}
+      810    0.001    0.000    0.001    0.000 {built-in method builtins.getattr}
+      200    0.000    0.000    0.001    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_ufunc_config.py:488(__exit__)
+
+

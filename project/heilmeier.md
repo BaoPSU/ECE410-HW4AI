@@ -6,22 +6,22 @@ ECE 410/510 Spring 2026
 
 ## 1. What are you trying to do?
 
-I am analyzing the hardware performance characteristics of ResNet-18, a widely used convolutional neural network, to understand what limits its execution speed and how a custom hardware accelerator could improve it. Specifically, I am using roofline analysis and profiling to identify the computationally dominant kernel, quantify its arithmetic intensity, and propose a HW/SW partition that targets the real bottleneck rather than optimizing blindly.
+I am analyzing the hardware performance characteristics of K-Means clustering to understand what limits its execution speed and how a custom hardware accelerator could improve it. Specifically, I am using roofline analysis and profiling to identify the computationally dominant kernel, quantify its arithmetic intensity, and propose a HW/SW partition that targets the real bottleneck.
 
 ---
 
 ## 2. How is it done today, and what are the limits of the current approach?
 
-Today, ResNet-18 inference is typically run on general-purpose CPUs or GPUs using frameworks like PyTorch. Profiling with `torch.profiler` across 10 forward passes on an Intel Core i9-12900H reveals that the **3×3 Conv2d layer in layer4 (512→512 channels, 7×7 spatial)** dominates runtime at **19.13% of total CPU time**, accounting for ~11.4 ms per forward pass.
+Today, K-Means is typically run on general-purpose CPUs using NumPy or similar libraries. Profiling with `cProfile` across 10 runs on an Intel Core i9-12900H (N=50,000 points, D=64 dimensions, K=8 clusters) reveals that the **pairwise distance computation** dominates runtime, accounting for the majority of the 39.3 seconds total — with `numpy.ufunc.reduce` alone at 5.57 seconds.
 
-The limit of the current CPU-based approach is clear from the roofline: the kernel has an arithmetic intensity of **23.99 FLOP/byte**, placing it in the compute-bound region (ridge point = 18.23 FLOP/byte). However, the CPU only achieves ~61 GFLOP/s of actual throughput against a theoretical ceiling of 1,400 GFLOP/s — a utilization of under 5%. This gap is caused by poor SIMD efficiency on the small 7×7 spatial maps, frequent memory round-trips for weights, and overhead from the general-purpose execution model. The CPU cannot keep its vector units fed efficiently for this kernel shape.
+The limit is clear from the roofline: the distance kernel has an arithmetic intensity of only **2.67 FLOP/byte**, placing it deep in the memory-bound region (ridge point = 9.11 FLOP/byte on this CPU). For every floating point operation, ~0.37 bytes of useful data are processed, meaning the compute units sit idle most of the time waiting for data from DRAM. The attainable performance ceiling is only ~205 GFLOP/s — far below the CPU's 700 GFLOP/s peak compute. Making the CPU faster would not help; the bottleneck is memory bandwidth.
 
 ---
 
 ## 3. What is your approach and why is it better?
 
-My approach is to design a hardware/software partition where the dominant Conv2d kernel is offloaded to a custom systolic array accelerator (targeting 50 TFLOP/s with 2 TB/s on-chip SRAM bandwidth), while the CPU handles preprocessing, normalization, and control flow.
+My approach is to design a hardware/software partition where the distance computation kernel is offloaded to a near-memory accelerator with HBM3-class bandwidth (10 TFLOP/s, 4 TB/s), while the CPU handles centroid updates, convergence checks, and control flow.
 
-The roofline analysis directly informs this choice: the kernel's arithmetic intensity of 23.99 FLOP/byte sits close to the ridge point of a well-designed accelerator (25 FLOP/byte at the target specs), meaning the accelerator can be kept near full utilization with appropriate weight tiling. By holding the 512×512 weight tensor on-chip across multiple spatial tiles, the effective data reuse increases, pushing the kernel into the compute-bound region where the accelerator's peak throughput is fully utilized.
+The roofline analysis directly informs this choice: with 4 TB/s bandwidth, the ridge point drops to 2.5 FLOP/byte — just below the kernel's AI of 2.67. This shifts the kernel from memory-bound to **compute-bound**, allowing the accelerator's MAC units to operate at near-peak efficiency. The required interface bandwidth of ~3.74 TB/s is achievable with HBM3 but not with standard DDR or PCIe, confirming that memory architecture — not compute throughput — is the design-critical parameter.
 
-This is better than the CPU baseline because a systolic array eliminates the SIMD scheduling overhead, maximizes MAC unit utilization for the exact kernel shape, and reduces DRAM traffic through on-chip weight buffering — directly attacking the bottleneck identified by profiling rather than relying on a general-purpose execution model.
+This approach is better than the CPU baseline because it eliminates the memory bandwidth bottleneck that prevents the current implementation from using even 30% of available compute, replacing it with a design where arithmetic throughput is the limiting factor.
