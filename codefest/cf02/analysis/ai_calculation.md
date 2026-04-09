@@ -63,9 +63,9 @@ AI = FLOPs / Bytes
 
 ## Bound Classification
 
-Hardware: Intel Core i9-12900H (FP32)
-- Peak FP32 compute: ~1,400 GFLOP/s (AVX2 FMA, all cores)
-- Peak DRAM bandwidth: ~76.8 GB/s (DDR5-4800, dual channel)
+Hardware: Intel Core i9-12900H (FP32)  
+- Peak FP32 compute: ~1,400 GFLOP/s (AVX2 FMA, all cores — source: Intel ARK, ark.intel.com/content/www/us/en/ark/products/226953)
+- Peak DRAM bandwidth: ~76.8 GB/s (DDR5-4800, dual channel — source: JEDEC JESD79-5 spec)
 - Ridge point: 1,400 / 76.8 ≈ **18.23 FLOP/byte**
 
 Since **AI (1.68) << Ridge point (18.23)**, the dominant kernel is **deeply memory-bound** on this hardware.
