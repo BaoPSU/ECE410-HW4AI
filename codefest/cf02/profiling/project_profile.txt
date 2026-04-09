@@ -1,43 +1,38 @@
-K-Means cProfile output — 10 runs
-Dataset: N=50000 points, D=64 dimensions, K=8 clusters, max_iters=20
+K-Means Image Color Quantization — cProfile output
+10 runs on bliss.jpg resized to 800x600 (N=480,000 pixels, D=3 RGB, K=16 colors)
 Sorted by cumulative time
 ================================================================================
 
-         35911 function calls in 39.345 seconds
+         63501 function calls (63364 primitive calls) in 91.957 seconds
 
    Ordered by: cumulative time
-   List reduced from 45 to 30 due to restriction <30>
+   List reduced from 264 to 25 due to restriction <25>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-       10    0.000    0.000   39.345    3.934 /home/bao/kmeans_project/run_profile.py:15(run_once)
-       10   33.150    3.315   39.345    3.934 /home/bao/kmeans_project/kmeans_demo.py:5(kmeans)
-     4010    5.570    0.001    5.570    0.001 {method 'reduce' of 'numpy.ufunc' objects}
-      210    0.002    0.000    5.002    0.024 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)
-      200    0.002    0.000    5.002    0.025 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2304(sum)
-     1600    0.004    0.000    0.599    0.000 {method 'mean' of 'numpy.ndarray' objects}
-     1600    0.021    0.000    0.596    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:115(_mean)
-      200    0.001    0.000    0.541    0.003 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:1321(argmin)
-      200    0.001    0.000    0.539    0.003 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:48(_wrapfunc)
-      200    0.538    0.003    0.538    0.003 {method 'argmin' of 'numpy.ndarray' objects}
-      200    0.001    0.000    0.029    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/numeric.py:2290(allclose)
-      200    0.014    0.000    0.026    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/numeric.py:2384(isclose)
-     2200    0.007    0.000    0.021    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:86(_wrapreduction_any_all)
-     1600    0.004    0.000    0.018    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2436(any)
-     1600    0.010    0.000    0.012    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:73(_count_reduce_items)
-      600    0.001    0.000    0.008    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2548(all)
-      400    0.002    0.000    0.005    0.000 {method 'all' of 'numpy.generic' objects}
-     4200    0.003    0.000    0.003    0.000 {built-in method builtins.isinstance}
-      200    0.002    0.000    0.002    0.000 {built-in method numpy.array}
-       10    0.000    0.000    0.002    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3287(prod)
-      400    0.000    0.000    0.002    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:64(_all)
-      200    0.001    0.000    0.001    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_ufunc_config.py:472(__enter__)
-     1000    0.001    0.000    0.001    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/numeric.py:2476(<genexpr>)
-     2200    0.001    0.000    0.001    0.000 {built-in method numpy.asanyarray}
-     3200    0.001    0.000    0.001    0.000 {built-in method builtins.issubclass}
-     2410    0.001    0.000    0.001    0.000 {method 'items' of 'dict' objects}
-      400    0.001    0.000    0.001    0.000 {built-in method builtins.abs}
-     1600    0.001    0.000    0.001    0.000 {built-in method numpy.lib.array_utils.normalize_axis_index}
-      810    0.001    0.000    0.001    0.000 {built-in method builtins.getattr}
-      200    0.000    0.000    0.001    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_ufunc_config.py:488(__exit__)
+       10    0.056    0.006   91.957    9.196 /home/bao/kmeans_project/run_profile.py:15(run_once)
+       10   45.422    4.542   91.900    9.190 /home/bao/kmeans_project/kmeans_image.py:5(kmeans)
+     7210   42.531    0.006   42.531    0.006 {method 'reduce' of 'numpy.ufunc' objects}
+      200    0.002    0.000   40.115    0.201 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2304(sum)
+      210    0.002    0.000   40.113    0.191 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:66(_wrapreduction)
+      200    0.002    0.000    3.809    0.019 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:1321(argmin)
+      200    0.001    0.000    3.808    0.019 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:48(_wrapfunc)
+      200    3.806    0.019    3.806    0.019 {method 'argmin' of 'numpy.ndarray' objects}
+     3200    0.006    0.000    2.460    0.001 {method 'mean' of 'numpy.ndarray' objects}
+     3200    0.043    0.000    2.454    0.001 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:115(_mean)
+     3200    0.007    0.000    0.049    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2436(any)
+     3800    0.012    0.000    0.048    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:86(_wrapreduction_any_all)
+      200    0.001    0.000    0.028    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/numeric.py:2290(allclose)
+      200    0.014    0.000    0.025    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/numeric.py:2384(isclose)
+     3200    0.016    0.000    0.020    0.000 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:73(_count_reduce_items)
+        1    0.000    0.000    0.012    0.012 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/__init__.py:704(__getattr__)
+     18/1    0.000    0.000    0.012    0.012 <frozen importlib._bootstrap>:1349(_find_and_load)
+     18/1    0.000    0.000    0.012    0.012 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)
+     18/1    0.000    0.000    0.012    0.012 <frozen importlib._bootstrap>:911(_load_unlocked)
+      6/1    0.000    0.000    0.012    0.012 <frozen importlib._bootstrap_external>:989(exec_module)
+     48/2    0.000    0.000    0.012    0.006 <frozen importlib._bootstrap>:480(_call_with_frames_removed)
+      6/1    0.000    0.000    0.012    0.012 {built-in method builtins.exec}
+        1    0.000    0.000    0.012    0.012 /home/bao/kmeans_project/venv/lib/python3.12/site-packages/numpy/random/__init__.py:1(<module>)
+        1    0.000    0.000    0.012    0.012 <frozen importlib._bootstrap>:1390(_handle_fromlist)
+        2    0.000    0.000    0.012    0.006 {built-in method builtins.__import__}
 
 
