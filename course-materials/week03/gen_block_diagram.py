@@ -119,24 +119,18 @@ arrow(ax, 11.8, 2.1, 10.4, 2.5)
 arrow(ax, 18.2, 2.1, 16.3, 2.1)
 
 # ── Legend / Notes ──
-ax.text(0.3, 5.2, 'Key Design\nChoices:', fontsize=9, fontweight='bold', color='#1A5276')
+ax.text(0.3, 5.2, 'Key Design Choices:', fontsize=9, fontweight='bold', color='#1A5276')
 notes = [
-    '• Algorithm: K-Means',
-    '  (image color quant.)',
-    '• Kernel: pairwise dist.',
-    '  AI = 1.68 FLOP/byte',
-    '• CPU ridge = 18.23',
-    '  → memory-bound',
-    '• Accel BW: 16 TB/s',
-    '  ridge = 0.5',
-    '  → compute-bound',
-    '• Precision: float32',
-    '• Interface: AXI4',
-    '• Req. BW: ~5 TB/s',
-    '  needs HBM/on-die',
+    '• Algorithm: K-Means (image color quantization)',
+    '• Kernel: pairwise distance  AI = 1.68 FLOP/byte',
+    '• CPU ridge = 18.23  →  memory-bound on CPU',
+    '• Accel BW: 16 TB/s  →  ridge = 0.5  →  compute-bound',
+    '• Precision: float32 (4 bytes/element)',
+    '• Interface: AXI4-Stream (data), AXI4-Lite (control)',
+    '• Required BW: ~5 TB/s  →  needs HBM / on-die SRAM',
 ]
 for i, note in enumerate(notes):
-    ax.text(0.3, 4.6 - i*0.38, note, fontsize=8, color='#2C3E50', va='top')
+    ax.text(0.3, 4.6 - i*0.48, note, fontsize=8.5, color='#2C3E50', va='top')
 
 plt.tight_layout()
 plt.savefig('kmeans_accelerator_block_diagram.png', dpi=150, bbox_inches='tight',
