@@ -34,10 +34,9 @@ Traffic = (2·N³/T + N²) × 4
 
 ```
 Ratio = 2·N³ / (2·N³/T) = T = 8
-      = N/T = 32/8 = 4   (tile sweeps per dimension)
 ```
 
-Tiling reduces DRAM traffic by **N/T = 4** because each tile is reused T times within the output tile, replacing N individual fetches with one shared load per T iterations.
+Tiling reduces DRAM traffic by **T = 8** because each element is reused T times within a shared-memory tile, replacing T separate DRAM fetches with a single tile load.
 
 ---
 
@@ -48,11 +47,11 @@ FLOPs        = 2·N³ = 65,536
 
 Naive:
   t_mem      = 266,240 / 320e9  = 0.832 μs   ← bottleneck
-  t_compute  =  65,536 / 10e12  = 0.00655 ns
+  t_compute  =  65,536 / 10e12  = 0.00655 μs
   → MEMORY-BOUND (mem is 127× slower)
 
 Tiled:
   t_mem      =  36,864 / 320e9  = 0.115 μs   ← bottleneck
-  t_compute  =  65,536 / 10e12  = 0.00655 ns
+  t_compute  =  65,536 / 10e12  = 0.00655 μs
   → MEMORY-BOUND (mem is 17.6× slower)
 ```
