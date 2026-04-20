@@ -65,6 +65,12 @@ I* = Peak_Compute / Bandwidth    [FLOP/byte]
 
 ## Unit 3: GEMM and Tiling — The Most Important CMAN Topic
 
+### What is N?
+N is the **dimension of the square matrix**. If N=32, you have a 32×32 matrix:
+- A is N×N, B is N×N, C (output) is N×N
+- Total elements in one matrix = **N²**
+- Total multiply-adds to compute C = **N³** (each of the N² output elements needs N multiply-adds)
+
 ### Naive GEMM
 Triple loop, no data reuse. Every access goes to DRAM.
 ```
