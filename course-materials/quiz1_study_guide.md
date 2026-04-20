@@ -123,7 +123,25 @@ Ridge point = 10,000/320 = 31.25 → both memory-bound; tiled needs N > 125 to c
 
 ---
 
-## Unit 4: GPU Architecture
+## Unit 4: What Is a Kernel?
+
+A **kernel** is the function/operation in your code that takes the most total runtime — the bottleneck worth accelerating in hardware.
+
+Key distinction: it's not necessarily the line that runs the *most times*, it's the one that takes the most *total time*:
+```python
+def train():
+    load_data()        # runs 1000×, takes 1% of total time
+    matrix_multiply()  # runs once per layer, takes 95% of total time  ← kernel
+    apply_relu()       # fast, 4% of time
+```
+
+You find it by **profiling** — timing every function and finding what consumes >10% of runtime (Amdahl's law). That's what you build hardware to accelerate. Speeding up everything else barely moves the needle.
+
+The hardware (GPU, TPU, ASIC) is what you build to run the kernel faster — the kernel is the *what*, the hardware is the *how you speed it up*.
+
+---
+
+## Unit 5: GPU Architecture
 
 ### SIMT Execution Model
 - **SIMT**: Single Instruction, Multiple Threads
@@ -180,7 +198,7 @@ kernel<<<M, T>>>(args)   // M blocks, T threads per block
 
 ---
 
-## Unit 5: CNN/DNN Fundamentals
+## Unit 6: CNN/DNN Fundamentals
 
 ### Key Formula
 ```
@@ -206,7 +224,7 @@ Conv2D FLOPs = 2 × N × C_in × K² × H_out × W_out
 
 ---
 
-## Unit 6: HW/SW Partitioning
+## Unit 7: HW/SW Partitioning
 
 ### Decision Framework
 | Question | Yes → | No → |
@@ -228,7 +246,7 @@ DRAM → [Input Buffer SRAM] → [GEMM Engine] → [Output Buffer] → DRAM
 
 ---
 
-## Unit 7: VLSI Design Basics
+## Unit 8: VLSI Design Basics
 
 ### Abstraction Levels
 1. **Algorithm** — Python, MATLAB
@@ -254,7 +272,7 @@ DRAM → [Input Buffer SRAM] → [GEMM Engine] → [Output Buffer] → DRAM
 
 ---
 
-## Unit 8: The Codefest Problems — What Was Tested
+## Unit 9: The Codefest Problems — What Was Tested
 
 ### CF01 — FC Network Workload Accounting
 - Count MACs layer by layer: input_dim × output_dim per layer
