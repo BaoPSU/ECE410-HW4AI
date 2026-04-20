@@ -299,36 +299,34 @@ Config: 7×7 kernel, 3 in-ch, 64 out-ch, 112×112 output, FP32
 **Setup**: C = A × B, N=32, FP32 (4 bytes), Tile T=8, BW=320 GB/s, Peak=10 TFLOP/s
 
 ### (a) Naive DRAM Traffic
+Only count reads of A and B (assignment does not count writes to C):
 ```
-Traffic = (2N² × N + N²) × 4 bytes
-        = (2×32³ + 32²) × 4
-        = (65,536 + 1,024) × 4
-        = 266,240 bytes
+Each element of A read N times, each element of B read N times
+Traffic = 2N³ × 4 = 2 × 32768 × 4 = 262,144 bytes
 ```
 
 ### (b) Tiled DRAM Traffic (T=8)
+Each tile of A and B is loaded exactly once across the full computation:
 ```
-Traffic = (2N³/T + N²) × 4
-        = (65,536/8 + 1,024) × 4
-        = (8,192 + 1,024) × 4
-        = 36,864 bytes
+Traffic = 2N² × 4 = 2 × 1024 × 4 = 8,192 bytes
 ```
 
 ### (c) Traffic Reduction Ratio
 ```
-Naive / Tiled = T = 8×
+2N³ / 2N² = N = 32
 ```
+Each element was read N times naively; tiling loads each element exactly once → N× reduction.
 
 ### (d) Execution Times
 
 | | Naive | Tiled |
 |---|---|---|
-| Memory time | 266,240 / 320e9 = **0.832 μs** | 36,864 / 320e9 = **0.115 μs** |
+| Memory time | 262,144 / 320e9 = **0.820 μs** | 8,192 / 320e9 = **0.0256 μs** |
 | Compute time | 65,536 / 10e12 = **0.0066 μs** | 65,536 / 10e12 = **0.0066 μs** |
-| Bottleneck | Memory (127× slower) | Memory (17.6× slower) |
-| Bound | Memory-bound | Memory-bound (improved 7.2×) |
+| Bottleneck | Memory (125× slower) | Memory (3.9× slower) |
+| Bound | Memory-bound | Memory-bound (much closer to ridge) |
 
-**Key insight**: Tiling always reduces DRAM traffic by factor T, but may not flip memory→compute bound. Need large enough T or high-enough AI kernel.
+**Key insight**: Tiling reduces DRAM traffic by factor N (not T). The ratio equals N because each of the N² elements in A and B was accessed N times naively.
 
 ---
 
