@@ -44,4 +44,5 @@ Tiled:
 - t_compute = 65,536 / 10e12 = **0.00655 μs**
 - → memory-bound (mem is 3.9× slower), but much closer to ridge point
 - Note: tiling reduced the memory gap from ~125× to ~4×; to become compute-bound would
-  require larger N (higher AI) or higher memory bandwidth.
+  require higher arithmetic intensity (e.g., larger N or further tiling) to move the
+  operating point past the ridge point of 31.25 FLOP/byte.
