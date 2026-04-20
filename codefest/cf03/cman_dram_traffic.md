@@ -25,8 +25,8 @@ Traffic = 2N^2 × 4 = 2 × 1024 × 4 = **8,192 bytes**
 
 2N^3 / 2N^2 = **N = 32**
 
-In the naive case, each element of A and B is redundantly read N times; tiling eliminates
-that redundancy so each element is loaded exactly once, reducing traffic by a factor of N.
+Tiling allows each element of A and B to be loaded from DRAM exactly once and reused N times
+within shared memory, eliminating the N-fold redundancy of the naive case.
 
 ---
 
@@ -43,3 +43,5 @@ Tiled:
 - t_mem = 8,192 / 320e9 = **0.0256 μs** ← bottleneck
 - t_compute = 65,536 / 10e12 = **0.00655 μs**
 - → memory-bound (mem is 3.9× slower), but much closer to ridge point
+- Note: tiling reduced the memory gap from ~125× to ~4×; to become compute-bound would
+  require larger N (higher AI) or higher memory bandwidth.
