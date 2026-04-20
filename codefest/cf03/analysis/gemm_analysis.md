@@ -5,10 +5,10 @@
 
 ## Measured Results
 
-| Kernel       | Time (ms) | GFLOP/s | Arith. Intensity (FLOP/byte) | Bound  |
-|--------------|-----------|---------|------------------------------|--------|
-| gemm_naive   | 6.600     | 325.4   | 0.250                        | Memory |
-| gemm_tiled T=8 | 6.446   | 333.1   | 30.12                        | Memory |
+| Kernel       | Time (ms) | GFLOP/s | Arith. Intensity (FLOP/byte) | Bound   |
+|--------------|-----------|---------|------------------------------|---------|
+| gemm_naive   | 6.613     | 324.7   | 0.250                        | Memory  |
+| gemm_tiled T=8 | 6.452   | 332.8   | 256.0                        | Compute |
 
 ## (a) Why the Naive Kernel Is Memory-Bound
 
@@ -16,8 +16,8 @@ The naive kernel assigns one thread per output element `C[i][j]` and streams thr
 
 ## (b) How Tiling Reduces DRAM Traffic
 
-The tiled kernel partitions A and B into T×T tiles (T=8) that are loaded cooperatively into shared memory. Each tile is loaded once from DRAM and reused T times across the inner accumulation loop, reducing the total DRAM reads by a factor of T (8×). Across the full N×N computation there are (N/T)² tile pairs, and each pair loads T² elements from both A and B — giving a traffic reduction of N/T = 128× compared to the naive case and an arithmetic intensity of ~30 FLOP/byte.
+The tiled kernel partitions A and B into T×T tiles (T=8) loaded cooperatively into shared memory. Each element of A and B is loaded from DRAM exactly once across the full computation, giving total DRAM traffic of 2N²×4 = 8 MB vs. the naive 2N³×4 = 8 GB — a reduction of N = 1024×. This pushes the theoretical arithmetic intensity from 0.25 to N/4 = 256 FLOP/byte, well past the ridge point of 45.2 FLOP/byte, making the tiled kernel theoretically compute-bound.
 
 ## (c) Whether the Tiled Kernel Achieved the Expected Improvement
 
-The tiled kernel improved only marginally over naive (333 vs. 325 GFLOP/s, ~2.4%), which is far short of the theoretical 128× traffic reduction. Two bottlenecks explain this. First, T=8 gives thread blocks of only 64 threads (8×8), resulting in low occupancy on Ampere — the SM can host many more resident warps, so latency cannot be fully hidden by warp switching. Second, at N=1024 the working set for the naive kernel (two 4 MB matrices) largely fits in the L2 cache (2 MB last-level), meaning repeated column accesses to B are partially served from cache rather than DRAM, narrowing the advantage of explicit tiling. Both kernels remain memory-bound and sit well below the compute ceiling; increasing T to 16 or 32 would significantly raise occupancy and arithmetic intensity, pushing the tiled kernel closer to the ridge point.
+The tiled kernel improved only marginally over naive (333 vs. 325 GFLOP/s, ~2.4%), far short of the theoretical N=1024× traffic reduction. Despite being theoretically compute-bound (AI=256 >> ridge=45.2), the kernel is nowhere near the 8,680 GFLOP/s compute ceiling. Two bottlenecks explain this. First, T=8 gives thread blocks of only 64 threads (8×8), resulting in very low occupancy on Ampere — too few warps per SM to hide arithmetic latency through warp switching. Second, the naive kernel's working set (two 4 MB matrices) is partially served by the 4 MB L2 cache, meaning its effective DRAM traffic is lower than the theoretical worst case, narrowing the gap between the two kernels. Increasing T to 16 or 32 would raise both occupancy and tile reuse, allowing the tiled kernel to approach the compute ceiling.

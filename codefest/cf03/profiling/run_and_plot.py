@@ -172,12 +172,12 @@ gflops_tiled = flops / (ms_tiled * 1e-3) / 1e9
 print(f"gemm_tiled:  {ms_tiled:.3f} ms  →  {gflops_tiled:.1f} GFLOP/s")
 
 # ── Arithmetic intensity ─────────────────────────────────────────────────────
-# Naive: reads N^2*(N+N)*4 bytes (no reuse), writes N^2*4 bytes
-bytes_naive = 2 * N**3 * 4 + N**2 * 4   # reads A+B per output, plus writes C
+# Naive: each element of A and B accessed N times, reads only
+bytes_naive = 2 * N**3 * 4
 ai_naive    = flops / bytes_naive
 
-# Tiled T=8: DRAM traffic reduced by N/T = 128 vs naive read traffic
-bytes_tiled = (2 * N**3 * 4 / (N / T_val)) + N**2 * 4
+# Tiled: each element of A and B loaded exactly once (ideal tiling) → 2N²×4 bytes
+bytes_tiled = 2 * N**2 * 4
 ai_tiled    = flops / bytes_tiled
 
 print(f"\nArithmetic intensity: naive={ai_naive:.3f} FLOP/byte, tiled={ai_tiled:.3f} FLOP/byte")
