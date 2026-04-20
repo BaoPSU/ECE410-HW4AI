@@ -233,6 +233,43 @@ kernel<<<M, T>>>(args)   // M = blocks, T = threads/block
 
 ---
 
+## 23. Likely Quiz Question Types
+
+### High probability — CMAN numerical (show all work, ±10%)
+- New matrix size or network shape → compute DRAM traffic, AI, execution time, bound
+- Formula template: Traffic_naive = 2N³×4, Traffic_tiled = 2N²×4, ratio = N
+- AI = FLOPs / Bytes; ridge = Peak_compute / BW; bound = compare AI to ridge
+
+### High probability — conceptual
+- Why does the traffic ratio equal **N** and not T?
+  → Each element loaded once in tiled vs. N times naive; T cancels out of 2N³/2N² = N
+- What limits tiled GEMM from achieving theoretical speedup?
+  → Low occupancy (small T → few threads/block) + L2 cache absorbing naive's traffic
+- Why is DRAM 170× more expensive than FP32 multiply?
+  → Energy: 640 pJ (DRAM read) vs 3.7 pJ (FP32 multiply)
+
+### High probability — roofline reading
+- Given a plot: identify memory-bound vs compute-bound kernels
+- Given peak + BW: compute ridge point and classify a kernel by its AI
+
+### Short definitions (know cold)
+- **SIMT**: Single Instruction Multiple Threads — all 32 threads in a warp run same instruction
+- **Warp**: 32 threads executing lockstep
+- **Occupancy**: active warps / max warps per SM; limited by registers, SMEM, block size
+- **AI**: FLOPs / Bytes — measures compute-to-memory ratio
+- **Shared memory**: per-SM fast SRAM (~1 TB/s); **global memory**: DRAM, slow, all threads
+
+### Trap questions — common wrong answers
+| Question | Wrong answer | Correct answer |
+|---|---|---|
+| Does tiling make kernel compute-bound? | Yes | Only if AI > ridge; depends on N and T |
+| Does higher BW make kernel compute-bound? | Yes | No — lowers ridge point but AI is unchanged |
+| Does increasing T always help? | Yes | Raises AI but too-small T kills occupancy |
+| Traffic ratio = ? | T | **N** (2N³ / 2N² = N) |
+| AI formula for tiled N=1024 | N/2 = 512 | **N/4 = 256** (2N³ / (2N²×4) = N/4) |
+
+---
+
 ## 17. CMAN Worked Example — Codefest 1
 
 **Network**: 3-layer fully connected [784 → 256 → 128 → 10], batch=1, FP32, no bias
