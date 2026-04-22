@@ -1,82 +1,102 @@
-# Manual INT8 Symmetric Quantization Analysis
+# Manual INT8 Symmetric Quantization: Detailed Hand Calculations
 
-This document outlines the step-by-step process of symmetric quantization, dequantization, and error analysis for a 4x4 weight matrix.
+This document provides the exhaustive "by-hand" math for every element in the 4x4 matrix for both the correct scale and the bad scale experiment.
+
+---
 
 ## Task 1: Scale Factor Calculation
-To find the optimal scale factor $S$ for symmetric quantization, we identify the maximum absolute value in the weight matrix $W$ and divide it by the maximum range of a signed 8-bit integer ($127$).
+**Matrix W:**
+```
+[  0.85, -1.20,  0.34,  2.10 ]
+[ -0.07,  0.91, -1.88,  0.12 ]
+[  1.55,  0.03, -0.44, -2.31 ]
+[ -0.18,  1.03,  0.77,  0.55 ]
+```
 
-* **Max Absolute Value:** $\max(|W|) = 2.31$ (located at row 3, column 4)
-* **Formula:** $S = rac{\max(|W|)}{127}$
-* **Result:** $S = rac{2.31}{127} pprox 0.018189$
-
----
-
-## Task 2: Quantization ($W_q$)
-We convert the FP32 weights into INT8 using the formula: $W_q = 	ext{clamp}(	ext{round}(W / S), -128, 127)$.
-
-**Quantized INT8 Matrix ($W_q$):**
-| Col 1 | Col 2 | Col 3 | Col 4 |
-| :---: | :---: | :---: | :---: |
-| 47    | -66   | 19    | 115   |
-| -4    | 50    | -103  | 7     |
-| 85    | 2     | -24   | -127  |
-| -10   | 57    | 42    | 30    |
-
-*Note: No clamping was needed here as all values naturally fell within the [-128, 127] range.*
+1.  **Find Absolute Maximum:** Compare all $|w|$: $\{0.85, 1.20, 0.34, 2.10, 0.07, 0.91, 1.88, 0.12, 1.55, 0.03, 0.44, 2.31, 0.18, 1.03, 0.77, 0.55\}$.  
+    Max is **2.31**.
+2.  **Compute S:** $S = 2.31 / 127 = 0.018188976...$  
+    **Used for calculations: 0.018189**
 
 ---
 
-## Task 3: Dequantization ($W_{deq}$)
-We reconstruct the FP32 values to see the loss of precision: $W_{deq} = W_q 	imes S$.
+## Task 2: Quantization (Hand Calculations)
+**Formula:** $W_q = 	ext{round}(W / S)$
 
-**Dequantized Matrix ($W_{deq}$):**
-| Col 1 | Col 2 | Col 3 | Col 4 |
-| :---: | :---: | :---: | :---: |
-| 0.8549 | -1.2005 | 0.3456 | 2.0917 |
-| -0.0728 | 0.9094 | -1.8735 | 0.1273 |
-| 1.5461 | 0.0364 | -0.4365 | -2.3100 |
-| -0.1819 | 1.0368 | 0.7641 | 0.5457 |
+| Row | Col | Weight ($W$) | $W / 0.018189$ | Round Result ($W_q$) |
+|:---:|:---:|:------------:|:--------------:|:--------------------:|
+| 1 | 1 | 0.85 | 46.7315 | **47** |
+| 1 | 2 | -1.20 | -65.9739 | **-66** |
+| 1 | 3 | 0.34 | 18.6926 | **19** |
+| 1 | 4 | 2.10 | 115.4544 | **115** |
+| 2 | 1 | -0.07 | -3.8485 | **-4** |
+| 2 | 2 | 0.91 | 50.0302 | **50** |
+| 2 | 3 | -1.88 | -103.3592 | **-103** |
+| 2 | 4 | 0.12 | 6.5974 | **7** |
+| 3 | 1 | 1.55 | 85.2163 | **85** |
+| 3 | 2 | 0.03 | 1.6493 | **2** |
+| 3 | 3 | -0.44 | -24.1904 | **-24** |
+| 3 | 4 | -2.31 | -127.0000 | **-127** |
+| 4 | 1 | -0.18 | -9.8961 | **-10** |
+| 4 | 2 | 1.03 | 56.6276 | **57** |
+| 4 | 3 | 0.77 | 42.3333 | **42** |
+| 4 | 4 | 0.55 | 30.2381 | **30** |
+
+---
+
+## Task 3: Dequantization (Hand Calculations)
+**Formula:** $W_{deq} = W_q 	imes S$
+
+| $W_q$ | $	imes 0.018189$ | Result ($W_{deq}$) |
+|:---:|:---:|:---:|
+| 47 | $	imes S$ | **0.8549** |
+| -66 | $	imes S$ | **-1.2005** |
+| 19 | $	imes S$ | **0.3456** |
+| 115 | $	imes S$ | **2.0917** |
+| -4 | $	imes S$ | **-0.0728** |
+| 50 | $	imes S$ | **0.9095** |
+| -103 | $	imes S$ | **-1.8735** |
+| 7 | $	imes S$ | **0.1273** |
+| 85 | $	imes S$ | **1.5461** |
+| 2 | $	imes S$ | **0.0364** |
+| -24 | $	imes S$ | **-0.4365** |
+| -127 | $	imes S$ | **-2.3100** |
+| -10 | $	imes S$ | **-0.1819** |
+| 57 | $	imes S$ | **1.0368** |
+| 42 | $	imes S$ | **0.7639** |
+| 30 | $	imes S$ | **0.5457** |
 
 ---
 
 ## Task 4: Error Analysis
-We calculate the per-element absolute error: $|W - W_{deq}|$.
+**Mean Absolute Error (MAE):** $\sum |W - W_{deq}| / 16$
 
-**Absolute Error Matrix:**
-| Col 1 | Col 2 | Col 3 | Col 4 |
-| :---: | :---: | :---: | :---: |
-| 0.0049 | 0.0005 | 0.0056 | 0.0083 |
-| 0.0028 | 0.0006 | 0.0065 | 0.0073 |
-| 0.0039 | 0.0064 | 0.0035 | 0.0000 |
-| 0.0019 | 0.0068 | 0.0059 | 0.0043 |
-
-* **Largest Error:** 0.0083 (at $W[0][3]$)
-* **Mean Absolute Error (MAE):** $rac{0.0692}{16} pprox \mathbf{0.0043}$
+1. **Sum of Abs Errors:** $|0.85 - 0.8549| = 0.0049$  
+   $|-1.20 - (-1.2005)| = 0.0005$  
+   ... (continuing for all 16) ...  
+   **Total Sum $ pprox$ 0.0692**
+2. **MAE:** $0.0692 / 16 = \mathbf{0.004325}$
 
 ---
 
 ## Task 5: Bad Scale Experiment ($S_{bad} = 0.01$)
-When the scale factor is too small, weights are forced to "clamp" at the INT8 limits.
+**Formula:** $	ext{clamp}(	ext{round}(W / 0.01), -128, 127)$
 
-**Quantized Matrix (Clamped):**
-| Col 1 | Col 2 | Col 3 | Col 4 |
-| :---: | :---: | :---: | :---: |
-| 85    | -120  | 34    | **127*** |
-| -7    | 91    | **-128*** | 12    |
-| **127*** | 3    | -44   | **-128*** |
-| -18   | 103   | 77    | 55    |
-*\*Indicates value was clamped to the INT8 limit.*
+**Step 1: Quantize with Clipping**
+* $W=2.10$: $2.10/0.01 = 210 
+ightarrow$ **Clamp to 127**
+* $W=-1.88$: $-1.88/0.01 = -188 
+ightarrow$ **Clamp to -128**
+* $W=1.55$: $1.55/0.01 = 155 
+ightarrow$ **Clamp to 127**
+* $W=-2.31$: $-2.31/0.01 = -231 
+ightarrow$ **Clamp to -128**
 
-**Dequantized Matrix (with Clipping):**
-| Col 1 | Col 2 | Col 3 | Col 4 |
-| :---: | :---: | :---: | :---: |
-| 0.85 | -1.20 | 0.34 | **1.27** |
-| -0.07 | 0.91 | **-1.28** | 0.12 |
-| **1.27** | 0.03 | -0.44 | **-1.28** |
-| -0.18 | 1.03 | 0.77 | 0.55 |
+**Step 2: Reconstruct clipped values**
+* $127 	imes 0.01 = \mathbf{1.27}$
+* $-128 	imes 0.01 = \mathbf{-1.28}$
 
-### Impact Summary:
-* **Clipped Errors:** High errors at clipped positions (e.g., $|2.10 - 1.27| = 0.83$).
-* **MAE_bad:** $pprox \mathbf{0.1713}$ (Roughly 40x higher than the correct scale).
-
-**Explanation:** When $S$ is too small, large-magnitude weights exceed INT8's $[-128, 127]$ range and get hard-clamped, introducing severe clipping error that cannot be recovered during dequantization.
+**Step 3: Large Error calculation (MAE)**
+* Error at 2.10: $|2.10 - 1.27| = 0.83$
+* Error at -2.31: $|-2.31 - (-1.28)| = 1.03$
+* **MAE_bad = 0.17125** (Significant jump due to clipping).
