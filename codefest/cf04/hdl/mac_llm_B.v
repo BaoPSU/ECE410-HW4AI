@@ -1,4 +1,4 @@
-// LLM B: Gemini 2.5 Flash (Google Workspace / PSU Enterprise)
+// LLM B: Gemini 3 Flash (Google Workspace / PSU Enterprise)
 // Same prompt as LLM A.
 
 module mac (
