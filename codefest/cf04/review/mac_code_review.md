@@ -5,7 +5,7 @@
 | File | LLM | Model Version |
 |------|-----|---------------|
 | `mac_llm_A.v` | Claude | Claude Sonnet 4.6 |
-| `mac_llm_B.v` | GPT-4o | gpt-4o-2024-11-20 (simulated output) |
+| `mac_llm_B.v` | Gemini | Gemini (Google Workspace / PSU Enterprise) |
 
 ---
 
@@ -13,21 +13,21 @@
 
 ### mac_llm_A.v
 ```
-iverilog -g2012 -o mac_a_sim mac_tb.v mac_llm_A.v
+iverilog -g2012 -o sim_a mac_tb.v mac_llm_A.v
 ```
 No errors. Compiled cleanly.
 
 ### mac_llm_B.v
 ```
-iverilog -g2012 -o mac_b_sim mac_tb.v mac_llm_B.v
+iverilog -g2012 -o sim_b mac_tb.v mac_llm_B.v
 ```
-No compiler errors — the bug is a silent semantic error, not a syntax error.
+No errors. Compiled cleanly.
 
 ---
 
 ## Simulation Results
 
-### mac_llm_A.v — PASS
+### mac_llm_A.v — ALL PASS
 ```
 PASS [a=3,b=4 cyc1]: out = 12
 PASS [a=3,b=4 cyc2]: out = 24
@@ -38,88 +38,109 @@ PASS [a=-5,b=2 cyc2]: out = -20
 ALL TESTS PASSED
 ```
 
-### mac_llm_B.v — FAIL
+### mac_llm_B.v — ALL PASS
 ```
 PASS [a=3,b=4 cyc1]: out = 12
 PASS [a=3,b=4 cyc2]: out = 24
 PASS [a=3,b=4 cyc3]: out = 36
 PASS [rst]: out = 0
-FAIL [a=-5,b=2 cyc1]: got 502, expected -10
-FAIL [a=-5,b=2 cyc2]: got 1004, expected -20
-2 TEST(S) FAILED
+PASS [a=-5,b=2 cyc1]: out = -10
+PASS [a=-5,b=2 cyc2]: out = -20
+ALL TESTS PASSED
 ```
+
+Both LLMs produced functionally correct implementations that pass all 6 test cases, including the negative-operand case that catches sign extension bugs. This is a notable finding in itself — both LLMs correctly followed the synthesizable SystemVerilog constraints.
 
 ---
 
-## Issue 1 — Wrong Process Type (`mac_llm_B.v`)
+## Issue 1 — Sign Extension Approach: Implicit vs Explicit (Both Files)
 
-### Offending lines
-```verilog
-always @(posedge clk) begin
-```
+### Offending / differing lines
 
-### Why it is wrong
-The specification explicitly requires `always_ff`. Plain `always @(posedge clk)` is Verilog-2001 style and is not recognized by synthesis tools as a sequential process — some tools will not infer flip-flops correctly, and linters will flag it. `always_ff` is the SystemVerilog keyword that statically guarantees the block models a clocked register; it is required for safe, portable synthesizable RTL.
-
-### Corrected version
+**LLM A (Claude):**
 ```systemverilog
-always_ff @(posedge clk) begin
+logic signed [15:0] product;
+always_comb product = a * b;
+// ...
+out <= out + {{16{product[15]}}, product};
+```
+
+**LLM B (Gemini):**
+```systemverilog
+logic signed [15:0] product;
+assign product = a * b;
+// ...
+out <= out + product;
+```
+
+### Analysis
+
+LLM B relies on **implicit SystemVerilog sign extension**: when a `signed [15:0]` value is added to a `signed [31:0]` accumulator, the compiler automatically sign-extends the narrower operand. This is correct per the IEEE 1800 SystemVerilog standard and produces the same hardware.
+
+LLM A uses **explicit bit-level sign extension** (`{16{product[15]}}, product}`), making the intent visible to any reader regardless of their SystemVerilog knowledge. It is more defensive — if the code were ever adapted to plain Verilog-2001, the explicit version would still work correctly whereas the implicit version might silently zero-extend depending on tool behavior.
+
+**Both are correct**, but the explicit approach (LLM A) is safer for portability and easier to audit during code review.
+
+### Preferred version
+```systemverilog
+out <= out + {{16{product[15]}}, product};  // explicit — portable and auditable
 ```
 
 ---
 
-## Issue 2 — Sign Extension Error: Missing `signed` on Ports and Intermediate Wire (`mac_llm_B.v`)
+## Issue 2 — `assign` vs `always_comb` for Combinational Logic (LLM B)
 
-### Offending lines
-```verilog
-input [7:0] a,
-input [7:0] b,
-output reg [31:0] out
-
-wire [15:0] product;
+### Offending lines (LLM B)
+```systemverilog
 assign product = a * b;
 ```
 
-### Why it is wrong
-`a` and `b` are declared without the `signed` qualifier, so the compiler treats them as unsigned 8-bit values. The expression `a * b` performs **unsigned** multiplication. When `a = -5` (binary `0xFB = 251`), the result is `251 × 2 = 502` instead of the correct `-10`. The manual sign extension `{16{product[15]}}` then extends the wrong bit — since the multiplication was unsigned, `product[15]` is not the sign bit of the true signed product.
+### Analysis
 
-Simulation confirms: `a=-5, b=2` → output `502` (wrong) instead of `-10`.
+LLM B uses a continuous `assign` statement to compute the product, which is functionally correct. However, the SystemVerilog best practice for combinational logic inside a module is `always_comb`, not `assign`. `always_comb` has two advantages:
 
-### Corrected version
-```systemverilog
-input  logic signed [7:0]  a,
-input  logic signed [7:0]  b,
-output logic signed [31:0] out
+1. **Linting enforcement**: tools will flag incomplete sensitivity lists or latches at compile time.
+2. **Consistency**: mixing `assign` and `always_ff` in the same module while having `always_comb` available is inconsistent style. The spec also emphasizes modern synthesizable SystemVerilog.
 
-logic signed [15:0] product;
-always_comb product = a * b;  // signed * signed = signed 16-bit
-```
-
-With `signed` declared, `a * b` performs signed multiplication: `(-5) × 2 = -10 = 0xFFF6` in 16 bits. The sign extension `{16{product[15]}} = {16{1}}` then correctly extends to `0xFFFFFFF6 = -10` in 32 bits.
-
----
-
-## Issue 3 — `reg` Instead of `logic` (`mac_llm_B.v`)
-
-### Offending lines
-```verilog
-output reg [31:0] out
-wire [15:0] product;
-```
-
-### Why it is wrong
-The specification requires synthesizable **SystemVerilog**, not Verilog-2001. `reg` and `wire` are legacy Verilog types. SystemVerilog unifies them as `logic` (driven by any source). Using `reg` for output ports and `wire` for combinational intermediates is not idiomatic SystemVerilog and will cause linter warnings in strict synthesis flows. Mixing `reg`/`wire` with `logic` in the same design can cause subtle assignment-direction conflicts.
+LLM A correctly uses `always_comb product = a * b`.
 
 ### Corrected version
 ```systemverilog
-output logic signed [31:0] out
-logic signed [15:0] product;
+always_comb product = a * b;
 ```
 
 ---
 
-## mac_correct.v — Simulation Log
+## Issue 3 — Multiplication Width Ambiguity (Both Files — Latent Risk)
 
+### Context
+
+Both LLMs declare:
+```systemverilog
+logic signed [15:0] product;
+assign/always_comb product = a * b;
+```
+
+### Analysis
+
+In SystemVerilog, the width of an intermediate expression like `a * b` is determined by the **self-determined width** of the operands (8 bits each), giving a 16-bit result. This is then assigned to `product [15:0]`, which matches. However, if the bit-width of `product` were changed (e.g., to `[31:0]`) the multiplication would still only produce a 16-bit result internally before being zero/sign-padded — a subtle source of errors.
+
+A safer pattern used in production RTL is to explicitly cast the multiplication to the desired width to make the intent unambiguous:
+
+```systemverilog
+// Makes the 32-bit context explicit — no reliance on implicit width rules
+out <= out + 32'(signed'(a) * signed'(b));
+```
+
+This eliminates the intermediate `product` wire entirely and is unambiguous about precision at the accumulator width.
+
+---
+
+## mac_correct.v — Final Verified Implementation
+
+`mac_correct.v` incorporates all best practices: `always_ff`, `always_comb`, explicit sign extension, `logic signed` on all ports.
+
+### Simulation log
 ```
 iverilog -g2012 -o mac_correct_sim mac_tb.v mac_correct.v
 PASS [a=3,b=4 cyc1]: out = 12
@@ -131,4 +152,16 @@ PASS [a=-5,b=2 cyc2]: out = -20
 ALL TESTS PASSED
 ```
 
-All 6 test cases pass. `mac_correct.v` compiles cleanly with `iverilog -g2012` and produces correct signed accumulation for both positive and negative operands.
+---
+
+## Summary
+
+| Check | LLM A (Claude) | LLM B (Gemini) |
+|-------|---------------|---------------|
+| `always_ff` used | ✓ | ✓ |
+| `logic signed` on all ports | ✓ | ✓ |
+| Sign extension correct | ✓ explicit | ✓ implicit |
+| Combinational style | `always_comb` (preferred) | `assign` (functional, less strict) |
+| Testbench: all 6 pass | ✓ | ✓ |
+
+Both LLMs avoided the most common failure modes. The differences between them are stylistic rather than functional, with LLM A's explicit approach being slightly more defensively written.
