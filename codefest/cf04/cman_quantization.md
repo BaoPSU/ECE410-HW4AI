@@ -1,102 +1,81 @@
-# Manual INT8 Symmetric Quantization: Detailed Hand Calculations
+# Manual INT8 Symmetric Quantization: Full Hand Calculations
 
-This document provides the exhaustive "by-hand" math for every element in the 4x4 matrix for both the correct scale and the bad scale experiment.
+## 1. Scale Factor (Task 1)
+**Original Equation:**
+$$S = \frac{\max(|W|)}{127}$$
 
----
-
-## Task 1: Scale Factor Calculation
-**Matrix W:**
-```
-[  0.85, -1.20,  0.34,  2.10 ]
-[ -0.07,  0.91, -1.88,  0.12 ]
-[  1.55,  0.03, -0.44, -2.31 ]
-[ -0.18,  1.03,  0.77,  0.55 ]
-```
-
-1.  **Find Absolute Maximum:** Compare all $|w|$: $\{0.85, 1.20, 0.34, 2.10, 0.07, 0.91, 1.88, 0.12, 1.55, 0.03, 0.44, 2.31, 0.18, 1.03, 0.77, 0.55\}$.  
-    Max is **2.31**.
-2.  **Compute S:** $S = 2.31 / 127 = 0.018188976...$  
-    **Used for calculations: 0.018189**
+* **Max Absolute Value:** $\max(|0.85|, |-1.20|, \dots, |-2.31|) = 2.31$
+* **Calculation:** $2.31 / 127 = 0.018188976...$
+* **Result (S):** **0.018189**
 
 ---
 
-## Task 2: Quantization (Hand Calculations)
-**Formula:** $W_q = 	ext{round}(W / S)$
+## 2. Quantization (Task 2)
+**Original Equation:**
+$$W_q = \text{clamp}(\text{round}(W / S), -128, 127)$$
 
-| Row | Col | Weight ($W$) | $W / 0.018189$ | Round Result ($W_q$) |
-|:---:|:---:|:------------:|:--------------:|:--------------------:|
-| 1 | 1 | 0.85 | 46.7315 | **47** |
-| 1 | 2 | -1.20 | -65.9739 | **-66** |
-| 1 | 3 | 0.34 | 18.6926 | **19** |
-| 1 | 4 | 2.10 | 115.4544 | **115** |
-| 2 | 1 | -0.07 | -3.8485 | **-4** |
-| 2 | 2 | 0.91 | 50.0302 | **50** |
-| 2 | 3 | -1.88 | -103.3592 | **-103** |
-| 2 | 4 | 0.12 | 6.5974 | **7** |
-| 3 | 1 | 1.55 | 85.2163 | **85** |
-| 3 | 2 | 0.03 | 1.6493 | **2** |
-| 3 | 3 | -0.44 | -24.1904 | **-24** |
-| 3 | 4 | -2.31 | -127.0000 | **-127** |
-| 4 | 1 | -0.18 | -9.8961 | **-10** |
-| 4 | 2 | 1.03 | 56.6276 | **57** |
-| 4 | 3 | 0.77 | 42.3333 | **42** |
-| 4 | 4 | 0.55 | 30.2381 | **30** |
 
----
 
-## Task 3: Dequantization (Hand Calculations)
-**Formula:** $W_{deq} = W_q 	imes S$
-
-| $W_q$ | $	imes 0.018189$ | Result ($W_{deq}$) |
-|:---:|:---:|:---:|
-| 47 | $	imes S$ | **0.8549** |
-| -66 | $	imes S$ | **-1.2005** |
-| 19 | $	imes S$ | **0.3456** |
-| 115 | $	imes S$ | **2.0917** |
-| -4 | $	imes S$ | **-0.0728** |
-| 50 | $	imes S$ | **0.9095** |
-| -103 | $	imes S$ | **-1.8735** |
-| 7 | $	imes S$ | **0.1273** |
-| 85 | $	imes S$ | **1.5461** |
-| 2 | $	imes S$ | **0.0364** |
-| -24 | $	imes S$ | **-0.4365** |
-| -127 | $	imes S$ | **-2.3100** |
-| -10 | $	imes S$ | **-0.1819** |
-| 57 | $	imes S$ | **1.0368** |
-| 42 | $	imes S$ | **0.7639** |
-| 30 | $	imes S$ | **0.5457** |
+| Row/Col | Weight ($W$) | $W / S$ | $\text{round}(W / S)$ | $W_q$ (INT8) |
+| :--- | :--- | :--- | :--- | :--- |
+| **R1,C1** | 0.85 | 46.731 | 47 | **47** |
+| **R1,C2** | -1.20 | -65.974 | -66 | **-66** |
+| **R1,C3** | 0.34 | 18.693 | 19 | **19** |
+| **R1,C4** | 2.10 | 115.454 | 115 | **115** |
+| **R2,C1** | -0.07 | -3.848 | -4 | **-4** |
+| **R2,C2** | 0.91 | 50.030 | 50 | **50** |
+| **R2,C3** | -1.88 | -103.359 | -103 | **-103** |
+| **R2,C4** | 0.12 | 6.597 | 7 | **7** |
+| **R3,C1** | 1.55 | 85.216 | 85 | **85** |
+| **R3,C2** | 0.03 | 1.649 | 2 | **2** |
+| **R3,C3** | -0.44 | -24.190 | -24 | **-24** |
+| **R3,C4** | -2.31 | -127.000 | -127 | **-127** |
+| **R4,C1** | -0.18 | -9.896 | -10 | **-10** |
+| **R4,C2** | 1.03 | 56.628 | 57 | **57** |
+| **R4,C3** | 0.77 | 42.333 | 42 | **42** |
+| **R4,C4** | 0.55 | 30.238 | 30 | **30** |
 
 ---
 
-## Task 4: Error Analysis
-**Mean Absolute Error (MAE):** $\sum |W - W_{deq}| / 16$
+## 3. Dequantization (Task 3)
+**Original Equation:**
+$$W_{deq} = W_q \times S$$
 
-1. **Sum of Abs Errors:** $|0.85 - 0.8549| = 0.0049$  
-   $|-1.20 - (-1.2005)| = 0.0005$  
-   ... (continuing for all 16) ...  
-   **Total Sum $ pprox$ 0.0692**
-2. **MAE:** $0.0692 / 16 = \mathbf{0.004325}$
+| $W_q$ | $\times 0.018189$ | $W_{deq}$ |
+| :--- | :--- | :--- |
+| 47 | $\times S$ | **0.8549** |
+| -66 | $\times S$ | **-1.2005** |
+| 19 | $\times S$ | **0.3456** |
+| 115 | $\times S$ | **2.0917** |
+| -4 | $\times S$ | **-0.0728** |
+| 50 | $\times S$ | **0.9095** |
+| -103 | $\times S$ | **-1.8735** |
+| 7 | $\times S$ | **0.1273** |
+| 85 | $\times S$ | **1.5461** |
+| 2 | $\times S$ | **0.0364** |
+| -24 | $\times S$ | **-0.4365** |
+| -127 | $\times S$ | **-2.3100** |
+| -10 | $\times S$ | **-0.1819** |
+| 57 | $\times S$ | **1.0368** |
+| 42 | $\times S$ | **0.7639** |
+| 30 | $\times S$ | **0.5457** |
 
 ---
 
-## Task 5: Bad Scale Experiment ($S_{bad} = 0.01$)
-**Formula:** $	ext{clamp}(	ext{round}(W / 0.01), -128, 127)$
+## 4. Error Analysis (Task 4)
+**Original Equations:**
+$$\text{Error} = |W - W_{deq}|$$
+$$\text{MAE} = \frac{1}{n} \sum_{i=1}^{n} |W_i - W_{deq,i}|$$
 
-**Step 1: Quantize with Clipping**
-* $W=2.10$: $2.10/0.01 = 210 
-ightarrow$ **Clamp to 127**
-* $W=-1.88$: $-1.88/0.01 = -188 
-ightarrow$ **Clamp to -128**
-* $W=1.55$: $1.55/0.01 = 155 
-ightarrow$ **Clamp to 127**
-* $W=-2.31$: $-2.31/0.01 = -231 
-ightarrow$ **Clamp to -128**
+* **Absolute Error Sum:** 0.0692
+* **Calculation:** $0.0692 / 16 = \mathbf{0.0043}$
 
-**Step 2: Reconstruct clipped values**
-* $127 	imes 0.01 = \mathbf{1.27}$
-* $-128 	imes 0.01 = \mathbf{-1.28}$
+---
 
-**Step 3: Large Error calculation (MAE)**
-* Error at 2.10: $|2.10 - 1.27| = 0.83$
-* Error at -2.31: $|-2.31 - (-1.28)| = 1.03$
-* **MAE_bad = 0.17125** (Significant jump due to clipping).
+## 5. Bad Scale Experiment (Task 5)
+**Scale Used:** $S_{bad} = 0.01$
+
+* **The Overflow/Clipping Issue:**
+    * For $W = 2.10$: $2.10 / 0.01 = 210 \rightarrow$ **Clamped to 127**
+    * For $W = -2.31$: $-2.31 / 0.01 = -231 \rightarrow$ **Clamped to -128**
+* **Resulting MAE:** **0.1713**
