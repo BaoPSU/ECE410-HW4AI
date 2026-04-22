@@ -87,3 +87,9 @@ ightarrow$ **Clamped to -128**
 
 **Explanation:**
 When $S$ is too small, large-magnitude weights exceed INT8's $[-128, 127]$ range and get hard-clamped, introducing severe clipping error that cannot be recovered during dequantization.
+
+## Appendix: Calculator Verification Methodology
+To ensure precision during hand calculations, the following steps were used:
+1. **Scale Storage:** $S$ was calculated as $2.31 / 127$ and stored with 6 decimal places ($0.018189$).
+2. **Rounding Protocol:** For $W_q$, standard rounding was applied (e.g., $46.73 \rightarrow 47$).
+3. **Clamping Protocol:** In Task 5, results exceeding the INT8 range ($>127$ or $<-128$) were manually capped at the boundary values to simulate hardware constraints.
