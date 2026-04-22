@@ -1,81 +1,89 @@
-# Manual INT8 Symmetric Quantization: Full Hand Calculations
+# Manual INT8 Symmetric Quantization Assignment
 
-## 1. Scale Factor (Task 1)
-**Original Equation:**
-$$S = \frac{\max(|W|)}{127}$$
-
-* **Max Absolute Value:** $\max(|0.85|, |-1.20|, \dots, |-2.31|) = 2.31$
-* **Calculation:** $2.31 / 127 = 0.018188976...$
-* **Result (S):** **0.018189**
-
----
-
-## 2. Quantization (Task 2)
-**Original Equation:**
-$$W_q = \text{clamp}(\text{round}(W / S), -128, 127)$$
-
-
-
-| Row/Col | Weight ($W$) | $W / S$ | $\text{round}(W / S)$ | $W_q$ (INT8) |
-| :--- | :--- | :--- | :--- | :--- |
-| **R1,C1** | 0.85 | 46.731 | 47 | **47** |
-| **R1,C2** | -1.20 | -65.974 | -66 | **-66** |
-| **R1,C3** | 0.34 | 18.693 | 19 | **19** |
-| **R1,C4** | 2.10 | 115.454 | 115 | **115** |
-| **R2,C1** | -0.07 | -3.848 | -4 | **-4** |
-| **R2,C2** | 0.91 | 50.030 | 50 | **50** |
-| **R2,C3** | -1.88 | -103.359 | -103 | **-103** |
-| **R2,C4** | 0.12 | 6.597 | 7 | **7** |
-| **R3,C1** | 1.55 | 85.216 | 85 | **85** |
-| **R3,C2** | 0.03 | 1.649 | 2 | **2** |
-| **R3,C3** | -0.44 | -24.190 | -24 | **-24** |
-| **R3,C4** | -2.31 | -127.000 | -127 | **-127** |
-| **R4,C1** | -0.18 | -9.896 | -10 | **-10** |
-| **R4,C2** | 1.03 | 56.628 | 57 | **57** |
-| **R4,C3** | 0.77 | 42.333 | 42 | **42** |
-| **R4,C4** | 0.55 | 30.238 | 30 | **30** |
+## Original Matrix W (FP32)
+```
+[  0.85, -1.20,  0.34,  2.10 ]
+[ -0.07,  0.91, -1.88,  0.12 ]
+[  1.55,  0.03, -0.44, -2.31 ]
+[ -0.18,  1.03,  0.77,  0.55 ]
+```
 
 ---
 
-## 3. Dequantization (Task 3)
-**Original Equation:**
-$$W_{deq} = W_q \times S$$
+## Task 1: Scale Factor
+**Question:** Compute $S$ using symmetric per-tensor quantization: $S = 	ext{max}(|W|) / 127$. Show the max value and the computed $S$.
 
-| $W_q$ | $\times 0.018189$ | $W_{deq}$ |
-| :--- | :--- | :--- |
-| 47 | $\times S$ | **0.8549** |
-| -66 | $\times S$ | **-1.2005** |
-| 19 | $\times S$ | **0.3456** |
-| 115 | $\times S$ | **2.0917** |
-| -4 | $\times S$ | **-0.0728** |
-| 50 | $\times S$ | **0.9095** |
-| -103 | $\times S$ | **-1.8735** |
-| 7 | $\times S$ | **0.1273** |
-| 85 | $\times S$ | **1.5461** |
-| 2 | $\times S$ | **0.0364** |
-| -24 | $\times S$ | **-0.4365** |
-| -127 | $\times S$ | **-2.3100** |
-| -10 | $\times S$ | **-0.1819** |
-| 57 | $\times S$ | **1.0368** |
-| 42 | $\times S$ | **0.7639** |
-| 30 | $\times S$ | **0.5457** |
+**Hand Calculation:**
+1. Identify all absolute values: $\{0.85, 1.20, 0.34, 2.10, 0.07, 0.91, 1.88, 0.12, 1.55, 0.03, 0.44, 2.31, 0.18, 1.03, 0.77, 0.55\}$
+2. **Max Absolute Value:** $2.31$ (Row 3, Col 4)
+3. **Scale Factor Calculation:** $S = 2.31 / 127 = 0.018188976...$
+4. **Final S:** **0.018189**
 
 ---
 
-## 4. Error Analysis (Task 4)
+## Task 2: Quantize
+**Question:** Quantize each element: $W_q = 	ext{round}(W / S)$. Clamp to $[-128, 127]$. Write out the full 4×4 INT8 matrix.
+
+**Original Equation:** $W_q = 	ext{clamp}(	ext{round}(W / S), -128, 127)$
+
+**Full 4x4 INT8 Matrix ($W_q$):**
+| | Col 1 | Col 2 | Col 3 | Col 4 |
+| :--- | :---: | :---: | :---: | :---: |
+| **Row 1** | 47 | -66 | 19 | 115 |
+| **Row 2** | -4 | 50 | -103 | 7 |
+| **Row 3** | 85 | 2 | -24 | -127 |
+| **Row 4** | -10 | 57 | 42 | 30 |
+
+*Verification:*
+- R1C1: $	ext{round}(0.85 / 0.018189) = 	ext{round}(46.73) = 47$
+- R3C4: $	ext{round}(-2.31 / 0.018189) = 	ext{round}(-127.00) = -127$
+
+---
+
+## Task 3: Dequantize
+**Question:** Compute $W_{deq} = W_q 	imes S$. Write out the 4×4 FP32 dequantized matrix.
+
+**Original Equation:** $W_{deq} = W_q 	imes S$
+
+**Full 4x4 FP32 Matrix ($W_{deq}$):**
+| | Col 1 | Col 2 | Col 3 | Col 4 |
+| :--- | :---: | :---: | :---: | :---: |
+| **Row 1** | 0.8549 | -1.2005 | 0.3456 | 2.0917 |
+| **Row 2** | -0.0728 | 0.9095 | -1.8735 | 0.1273 |
+| **Row 3** | 1.5461 | 0.0364 | -0.4365 | -2.3100 |
+| **Row 4** | -0.1819 | 1.0368 | 0.7639 | 0.5457 |
+
+---
+
+## Task 4: Error Analysis
+**Question:** Compute the per-element absolute error $|W − W_{deq}|$. Identify the element with the largest error and compute the Mean Absolute Error (MAE).
+
 **Original Equations:**
-$$\text{Error} = |W - W_{deq}|$$
-$$\text{MAE} = \frac{1}{n} \sum_{i=1}^{n} |W_i - W_{deq,i}|$$
+- $	ext{Error} = |W - W_{deq}|$
+- $	ext{MAE} = rac{1}{n} \sum |W - W_{deq}|$
 
-* **Absolute Error Sum:** 0.0692
-* **Calculation:** $0.0692 / 16 = \mathbf{0.0043}$
+**Analysis:**
+- **Largest Error:** $0.0083$ at $W[0][3]$ (Original $2.10$ vs Dequantized $2.0917$)
+- **Sum of Absolute Errors:** $0.0692$
+- **MAE:** $0.0692 / 16 = \mathbf{0.0043}$
 
 ---
 
-## 5. Bad Scale Experiment (Task 5)
-**Scale Used:** $S_{bad} = 0.01$
+## Task 5: Bad Scale Experiment
+**Question:** Use $S_{bad} = 0.01$ (too small). Repeat quantization and dequantization. Compute the MAE. Explain in one sentence what goes wrong when $S$ is too small.
 
-* **The Overflow/Clipping Issue:**
-    * For $W = 2.10$: $2.10 / 0.01 = 210 \rightarrow$ **Clamped to 127**
-    * For $W = -2.31$: $-2.31 / 0.01 = -231 \rightarrow$ **Clamped to -128**
-* **Resulting MAE:** **0.1713**
+**Hand Calculation ($S = 0.01$):**
+1. **Quantization with Clipping:**
+   - $2.10 / 0.01 = 210 
+ightarrow$ **Clamped to 127**
+   - $-1.88 / 0.01 = -188 
+ightarrow$ **Clamped to -128**
+   - $1.55 / 0.01 = 155 
+ightarrow$ **Clamped to 127**
+   - $-2.31 / 0.01 = -231 
+ightarrow$ **Clamped to -128**
+2. **MAE Calculation:** Errors at clipped positions are massive (e.g., $|2.10 - 1.27| = 0.83$).
+3. **MAE_bad:** **0.1713**
+
+**Explanation:**
+When $S$ is too small, large-magnitude weights exceed INT8's $[-128, 127]$ range and get hard-clamped, introducing severe clipping error that cannot be recovered during dequantization.
