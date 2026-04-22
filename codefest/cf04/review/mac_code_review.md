@@ -5,7 +5,7 @@
 | File | LLM | Model Version |
 |------|-----|---------------|
 | `mac_llm_A.v` | Claude | Claude Sonnet 4.6 |
-| `mac_llm_B.v` | Gemini | Gemini 3 Flash (Google Workspace / PSU Enterprise) |
+| `mac_llm_B.v` | Gemini | Gemini 3 Fast (Google Workspace / PSU Enterprise) |
 
 ---
 

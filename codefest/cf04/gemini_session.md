@@ -1,5 +1,5 @@
 # Gemini Session — CLLM Codefest 4
-Model: Gemini 3 Flash (Google Workspace / PSU Enterprise)
+Model: Gemini 3 Fast (Google Workspace / PSU Enterprise)
 Date: 2026-04-22
 
 ---
