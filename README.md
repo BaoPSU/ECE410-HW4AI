@@ -21,6 +21,8 @@ codefest/
   cf04/                       Codefest 4 — Quantization, MAC HDL, LLM comparison
 
 course-materials/             Weekly slides, docs, and notes (weeks 1–4)
+  week01/ – week04/           slides/, docs/ per week + weekXX_notes.md
+  study/                      Quiz 1 cheat sheet, study guide, practice questions
 
 project/                      K-Means image color quantization accelerator
   hdl/                        Synthesizable RTL distance core
