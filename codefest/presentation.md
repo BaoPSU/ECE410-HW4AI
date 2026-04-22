@@ -24,7 +24,18 @@ Bao Nguyen | ECE 410/510 | Spring 2026
 
 ---
 
-## Visuals (for slide)
-- `codefest/cf02/profiling/roofline_project.png` — roofline: CPU vs PIM accelerator
-- `bliss_before_after.png` — Bliss photo before and after K-Means (K=16 colors)
-- `project/m1/system_diagram.png` — system architecture (CPU → UCIe → PIM chiplet)
+## Bliss — Before vs After K-Means (K=16 colors)
+
+![Bliss before and after K-Means quantization](bliss_before_after.png)
+
+---
+
+## Roofline — CPU vs PIM Accelerator
+
+![Roofline model showing K-Means is memory-bound on CPU and compute-bound on PIM](../codefest/cf02/profiling/roofline_project.png)
+
+---
+
+## System Architecture
+
+![System block diagram: CPU to UCIe to PIM chiplet](../project/m1/system_diagram.png)
