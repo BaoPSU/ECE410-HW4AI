@@ -63,6 +63,17 @@ integers up to 2^24, and since 195,075 < 2^24 every computation is exact in both
 formats. The synthesizable core uses integer arithmetic to avoid requiring vendor
 FP IP and to be directly implementable with standard synthesizable RTL.
 
+The M1 software baseline (`project/m1/sw_baseline.md`) measured 1.38 GFLOP per
+image (N=480,000 pixels, K=16, D=3, 20 iterations) against ~69 MB of memory
+traffic per iteration, giving an arithmetic intensity of approximately 1 FLOP/byte.
+This places the kernel well below the compute-bound ridge point on the roofline,
+confirming it is memory-bound. At this arithmetic intensity, using wider precision
+(FP64) would not improve throughput but would double memory bandwidth — the wrong
+tradeoff. INT8 and INT16 would overflow on squared differences (max diff^2 = 65,025
+exceeds INT16 range of 32,767), causing wrong centroid assignments. Integer 18-bit
+arithmetic (implemented here in 20-bit accumulators) is the minimum exact-correct
+format, directly justified by the M1 intensity analysis.
+
 **UCIe interface justification**
 
 Documented in `project/m1/interface_selection.md`. UCIe provides 51x more
