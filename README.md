@@ -32,6 +32,8 @@ project/                      K-Means image color quantization accelerator
 
 ## Project: K-Means Image Color Quantization Accelerator
 
+![Algorithm Diagram](project/algorithm_diagram.png)
+
 ### Compute Core (`project/hdl/kmeans_dist_core.sv`)
 
 Synthesizable K-Means squared-distance engine. For each input pixel, computes
@@ -73,3 +75,5 @@ Documented in `project/m1/interface_selection.md`. UCIe provides 51× more bandw
 |-----------|----------|--------|
 | M1: Interface selection + SW baseline | `project/m1/` | Done |
 | M2: Precision choice + behavioral RTL + AXI4-Lite slave | `project/m2/` | Done |
+
+![System Diagram](project/m1/system_diagram.png)
