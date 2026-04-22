@@ -1,0 +1,7 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1776884950" />
+    <testcase name="test_kmeans_nearest" classname="test_kmeans" file="/tmp/ECE410-HW4AI/project/hdl/test_kmeans.py" lineno="30" time="0.0031921863555908203" sim_time_ns="21.0" ratio_time="6578.56329822989" />
+    <testcase name="test_kmeans_midpoint" classname="test_kmeans" file="/tmp/ECE410-HW4AI/project/hdl/test_kmeans.py" lineno="63" time="0.0014767646789550781" sim_time_ns="20.999999999999996" ratio_time="14220.275104940263" />
+  </testsuite>
+</testsuites>

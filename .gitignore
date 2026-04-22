@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+sim_build/
+*.vvp
+*.vcd
+*.fst
+mac_a_sim
+mac_b_sim
+mac_correct_sim
+sim_a
+sim_b
