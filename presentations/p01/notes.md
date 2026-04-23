@@ -15,7 +15,7 @@ Duration: ~1 minute
 "Instead of a CPU, I'm designing a chip where the memory and the math units sit right next to each other — so there's no waiting. You can see that in the roofline plot — on the CPU the kernel sits way down in the memory-bound zone, but on my accelerator it flips to compute-bound. That's where the 62× speedup comes from."
 
 **What have I done so far?**
-"I've measured the CPU baseline, confirmed where the bottleneck is, and written all the hardware — the distance engine, the memory interface, and the compute core — all passing simulation."
+"I've measured the CPU baseline, confirmed where the bottleneck is, and written the key hardware — the distance engine and AXI4-Lite control interface are both passing simulation, and UCIe is selected as the host interface to the chiplet."
 
 **What's next?**
 "I need to connect all the pieces into a full system, verify timing, and then measure actual throughput to prove the speedup is real."
