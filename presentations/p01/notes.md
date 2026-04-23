@@ -23,3 +23,9 @@ Duration: ~1 minute
 ---
 
 > Tip: Linger on the Bliss before/after when you first show it — it's your best visual hook.
+
+---
+
+## Definitions
+
+**PIM (Processing-In-Memory)** — a chip design where the compute units are placed physically next to the memory, instead of the usual CPU→bus→RAM setup. Normally the CPU fetches pixel data across a slow memory bus, does a tiny bit of math, then waits for more data — that's why K-Means is memory-bound on CPU (46% of runtime is just waiting). With a PIM chiplet, the distance math (subtract, square, accumulate) happens right where the pixels already live in HBM3 memory. No bus trip, no waiting. That's where the 16 TB/s bandwidth and the 62× speedup come from. In the diagram it's the pink dashed box — the Compute Engine and On-Chip Memory are co-located on the same chiplet, connected to the CPU via UCIe.
