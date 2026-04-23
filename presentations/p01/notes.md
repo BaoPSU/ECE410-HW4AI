@@ -9,7 +9,7 @@ Duration: ~1 minute
 "I'm building a custom chip that takes any photo and compresses it down to just 16 colors — by grouping similar pixels together. Think of the Bliss photo on the right — that's the original, and that's what it looks like with only 16 colors."
 
 **How is it done today?**
-"Right now this runs on a regular CPU and takes about 9 seconds per image — but the CPU is barely doing any work. Less than 1% of its computing power is being used. The bottleneck is memory — the CPU spends almost half its time just waiting for data to load."
+"Right now this runs on a regular CPU — scikit-learn with OpenBLAS — and takes about 9 seconds per image, using less than 1% of its computing power. GPUs like NVIDIA with CUDA or cuML can do it faster, but they're general-purpose, not built for K-Means. There are FPGA designs too, like on AMD Artix-7, but those are rigid and device-specific. And there's no dedicated near-memory chiplet for K-Means image quantization with HBM3 and UCIe — that's the gap I'm filling."
 
 **What am I doing differently?**
 "Instead of a CPU, I'm designing a chip where the memory and the math units sit right next to each other — so there's no waiting. You can see that in the roofline plot — on the CPU the kernel sits way down in the memory-bound zone, but on my accelerator it flips to compute-bound. That's where the 62× speedup comes from."
