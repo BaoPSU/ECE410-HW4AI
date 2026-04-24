@@ -1,0 +1,11 @@
+$ iverilog -g2012 -o mac_correct_sim ../hdl/mac_tb.v ../hdl/mac_correct.v
+$ vvp mac_correct_sim
+VCD info: dumpfile mac_tb.vcd opened for output.
+PASS [a=3,b=4 cyc1]: out = 12
+PASS [a=3,b=4 cyc2]: out = 24
+PASS [a=3,b=4 cyc3]: out = 36
+PASS [rst]: out = 0
+PASS [a=-5,b=2 cyc1]: out = -10
+PASS [a=-5,b=2 cyc2]: out = -20
+ALL TESTS PASSED
+../hdl/mac_tb.v:54: $finish called at 66000 (1ps)

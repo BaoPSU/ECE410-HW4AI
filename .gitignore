@@ -3,6 +3,7 @@ __pycache__/
 sim_build/
 *.vvp
 *.vcd
+!codefest/cf04/cocotb_mac/mac_tb.vcd
 *.fst
 mac_a_sim
 mac_b_sim
