@@ -114,6 +114,57 @@ course-materials/
 
 ---
 
+## Study Material Coverage Tracker
+
+This section tracks which slide files have been processed into notes or the cheatsheet. When new slides are uploaded, check this table first — anything marked **NOT covered** needs to be summarized before the cheatsheet/notes are up to date.
+
+### Week 1 — `course-materials/week01/slides/`
+
+| Slide file | Topics | Covered in |
+|-----------|--------|------------|
+| `w1_mon_1_introduction_motivation.pdf` | Memory wall, energy cost of data movement, architecture evolution (CPU→GPU→NPU) | `quiz1_cheatsheet.md` §1, `quiz1_study_guide.md` Unit 1 |
+| `w1_mon_2_course_details.pdf` | Course logistics, assignment structure | `week01_notes.md` |
+| `w1_mon_3_hw4ai_topic_overview.pdf` | HW/SW codesign overview, PPAC trade-offs | `quiz1_cheatsheet.md` §13–15 |
+| `w1_wed_codefest_1.pdf` | Codefest 1 challenge problems (FC network workload accounting) | `quiz1_cheatsheet.md` §17 (CMAN CF01 example) |
+| `w1_wed_llm_tips_and_tricks.pdf` | LLM usage for coursework | ❌ **NOT covered** in cheatsheet or notes |
+
+### Week 2 — `course-materials/week02/slides/`
+
+| Slide file | Topics | Covered in |
+|-----------|--------|------------|
+| *(no slides in repo)* | Roofline model, arithmetic intensity, ridge point, HW/SW partitioning | Topics covered via `week02_notes.md` summary + `quiz1_cheatsheet.md` §2–3, §13 |
+
+### Week 3 — `course-materials/week03/slides/`
+
+| Slide file | Topics | Covered in |
+|-----------|--------|------------|
+| *(no slides in repo)* | GPU architecture: SIMT, warps, memory hierarchy, CUDA programming model | Topics covered via `week03_notes.md` summary + `quiz1_cheatsheet.md` §6–10 |
+
+### Week 4 — `course-materials/week04/slides/` and `docs/`
+
+| Slide file | Topics | Covered in |
+|-----------|--------|------------|
+| `w4_mon_gpu_cnn_dnn.pdf` | SIMD vs SIMT, tensor cores, tiled GEMM on GPU, precision formats (FP4/NVFP4/INT8), ResNet-18, CNN/DNN ops | `week04_ai_summary.md` §1, `quiz1_cheatsheet.md` §10–12 |
+| `w4_mon_vlsi_design.pdf` | VLSI abstraction levels, EDA tools, cocotb, Tiny Tapeout, Python HDLs | `week04_ai_summary.md` §2, `quiz1_cheatsheet.md` §14 |
+| `w4_mon_recap.pdf` | Agentic co-processor trends, M2 milestone requirements, Quiz 1 prep advice | `week04_ai_summary.md` §3 |
+| `codefest_presentation_instructions_spring26.pdf` | How to present at codefest | ❌ **NOT covered** in cheatsheet or notes |
+
+### Week 5 — `course-materials/week05/slides/`
+
+| Slide file | Topics | Covered in |
+|-----------|--------|------------|
+| `w5_mon_recap.pdf` | *(not yet read)* | ❌ **NOT covered** — uploaded 2026-04-27, no notes yet |
+| `w5_mon_tpu_gpu_transformers.pdf` | *(not yet read)* TPU architecture, GPU vs TPU comparison, transformer hardware | ❌ **NOT covered** — uploaded 2026-04-27, no notes yet |
+
+### What to do when new slides are uploaded
+
+1. Add a row to the table above for the new file
+2. Mark it ❌ NOT covered
+3. Read the slide and update the relevant `weekXX_notes.md` or `quiz1_cheatsheet.md`
+4. Change the status to the file it was added to
+
+---
+
 ## Tool Versions
 - Python 3.12.3, NumPy 2.4.4
 - cocotb 2.0.1 with Icarus Verilog (icarus sim backend)
