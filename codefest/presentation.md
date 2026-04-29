@@ -19,8 +19,10 @@ Bao Nguyen | ECE 410/510 | Spring 2026
 - Wrote and tested all hardware in simulation — distance engine, AXI4-Lite interface, and compute core — all passing testbenches
 
 ## What's next?
-- Connect all pieces into a full system
-- Verify timing, measure throughput, compare against the 9-second baseline → declare success
+- Top-level integration: host driver ↔ UCIe ↔ AXI4-Lite slave ↔ integer distance core
+- System-level functional verification with cocotb / SystemVerilog testbench
+- Performance benchmarking vs. 9s CPU baseline (latency, throughput, 62× speedup validation)
+- RTL synthesis & resource/timing reports (area, critical path, memory bandwidth utilization)
 
 ---
 

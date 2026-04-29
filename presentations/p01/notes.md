@@ -18,7 +18,7 @@ Duration: ~1 minute
 "I've measured the CPU baseline, confirmed where the bottleneck is, and written the key hardware — the distance engine and AXI4-Lite control interface are both passing simulation, and UCIe is selected as the host interface to the chiplet."
 
 **What's next?**
-"I need to connect all the pieces into a full system, verify timing, and then measure actual throughput to prove the speedup is real."
+"Three remaining pieces: integration, verification, and measurement. Integration means wiring the AXI4-Lite slave, the integer distance core, and the UCIe host driver into a single top-level. Then I'll drive a system-level cocotb testbench end-to-end. Finally, synthesis gives me area and timing numbers, and a sweep against the 9-second CPU baseline either confirms the 62× speedup — or tells me where I'm off."
 
 ---
 
