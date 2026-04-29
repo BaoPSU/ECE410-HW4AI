@@ -46,19 +46,7 @@ C[1][1] = A[1][0]×B[0][1] + A[1][1]×B[1][1] = 3×6 + 4×8 = 18 + 32 = **50** �
 
 **Array layout:**
 
-```
-  A[m][0] ──►  ┌─────────────┐     ┌─────────────┐
-               │   PE[0][0]  │ ──► │   PE[0][1]  │
-  Row 0 (k=0) │  weight = 5 │     │  weight = 6 │
-               └──────┬──────┘     └──────┬──────┘
-                      │ ps↓               │ ps↓
-  A[m][1] ──►  ┌──────▼──────┐     ┌──────▼──────┐
-               │   PE[1][0]  │ ──► │   PE[1][1]  │
-  Row 1 (k=1) │  weight = 7 │     │  weight = 8 │
-               └─────────────┘     └─────────────┘
-                      │                   │
-                   C[m][0]             C[m][1]
-```
+![2×2 weight-stationary systolic array with preloaded weights](pe_array_diagram.png)
 
 - `──►` : input propagates left-to-right within each PE row
 - `ps↓` : partial sum flows top-to-bottom between rows
@@ -79,6 +67,8 @@ partial_sum_out = partial_sum_in + (input × weight)
 ## Task 2: Cycle-by-Cycle Trace
 
 **Dataflow rule:** Each row of A is streamed one element at a time. A[m][0] enters row 0; one cycle later A[m][1] enters row 1 while row 0's partial sums propagate downward. Partial sums in row 0 reset between output rows.
+
+![Cycle-by-cycle trace showing all 4 cycles of the systolic array](cycle_trace.png)
 
 ---
 
