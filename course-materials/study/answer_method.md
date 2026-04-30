@@ -17,11 +17,12 @@ One clear sentence that defines what the thing IS, not just what it contains.
 
 > "A Streaming Multiprocessor is the fundamental execution unit of an NVIDIA GPU..."
 
-### 2. Bullet out the key components or ideas
-Each bullet = one term + its role. No orphan terms.
+### 2. Bullet out the key components or ideas — line by line, flowing
+Each bullet = one term + its role, and each line should continue the thought from the one before. Don't write isolated facts — write like each bullet is the next sentence in a spoken explanation.
 
-> - **CUDA cores** handle scalar FP32/INT32 arithmetic — the basic math units
-> - **Warp schedulers** manage groups of 32 threads and switch between them to hide memory latency
+> - Inside each SM, the **CUDA cores** handle the basic scalar math — FP32 and INT32 operations.
+> - Sitting alongside them are the **Tensor cores**, purpose-built for MMA on a 4×4 matrix per clock cycle.
+> - To keep those cores busy, the SM has **warp schedulers** that manage groups of 32 threads and instantly switch to a ready warp whenever the current one stalls on memory.
 
 ### 3. Close with the big picture
 One sentence on how it all fits together or why it matters.
@@ -36,6 +37,7 @@ One sentence on how it all fits together or why it matters.
 - **No parentheses unless necessary** — fold the extra detail into the sentence instead.
 - **Streamlined and friendly** — not robotic, not stiff. Write like you're explaining to a smart classmate.
 - **Bullet points over paragraphs** — easier to follow out loud and easier to grade.
+- **Bullets should flow into each other** — each line continues the thought from the one before, like a spoken explanation broken into lines. Not a list of disconnected facts.
 - **Minimum filler** — skip "I think", "basically", "kind of". Be direct.
 
 ---
@@ -78,14 +80,14 @@ One sentence on how it all fits together or why it matters.
 
 ## Example: SM Answer Done Right
 
-- A Streaming Multiprocessor is the core execution unit of an NVIDIA GPU — the H100 has 132 of them, and every computation runs through one.
-- The hardware assigns one thread block per SM, and all threads in that block share its resources.
-- **CUDA cores** handle scalar arithmetic — FP32 and INT32 operations.
-- **Tensor cores** are specialized matrix-multiply accelerators built for the MACs that dominate deep learning.
-- **Warp schedulers** manage warps — groups of 32 threads executing lockstep under SIMT — and switch to a ready warp whenever the current one stalls waiting on memory.
-- The **register file** is the fastest per-thread storage on the chip.
-- **Shared memory** is a fast on-chip scratchpad that lets threads in the same block reuse data without going to slow DRAM.
-- **Load/store units** move data between the SM and the memory hierarchy.
-- **Special Function Units** handle transcendentals like sin, cos, and exp.
-- An **L1 cache** is unified with shared memory but hardware-managed.
-- The big picture: warp schedulers keep math units busy by switching between warps every cycle, hiding the ~100× latency gap between on-chip SRAM and off-chip DRAM.
+- A Streaming Multiprocessor is the fundamental execution unit of an NVIDIA GPU — the entire GPU is just a collection of these, and the H100 has 132 of them.
+- Every computation you run on a GPU happens inside an SM, and the hardware scheduler decides which thread block goes to which one.
+- Inside each SM, the **CUDA cores** handle the basic scalar math — your FP32 and INT32 operations.
+- Sitting alongside them are the **Tensor cores**, which are purpose-built for MMA — matrix multiply and accumulate — running D = A×B + C on a 4×4 matrix in a single clock cycle.
+- To keep all of those cores busy, the SM has 4 processing blocks, each with its own **warp scheduler** managing warps — groups of 32 threads executing the same instruction lockstep under SIMT.
+- When one warp stalls waiting on memory, the scheduler immediately swaps in another ready warp, which is how the GPU hides that ~100× latency gap between on-chip SRAM and off-chip DRAM.
+- Each SM also has a massive **register file** — 65,536 × 32-bit registers — which is the fastest storage on the chip, private to each thread.
+- Then there's **shared memory**, a programmer-managed on-chip SRAM scratchpad (~228 KB on H100) that all threads in the same block can use together to reuse data without going out to slow global memory.
+- **Load/store units** handle moving data between the SM and the rest of the memory hierarchy, and **Special Function Units** take care of transcendental math like sin, cos, and exp.
+- Finally, an **L1 cache** sits physically unified with shared memory but is managed automatically by the hardware rather than the programmer.
+- The whole design comes down to one idea — keep the math units fed and busy at all times, using warp switching to cover for the inevitable memory stalls.
