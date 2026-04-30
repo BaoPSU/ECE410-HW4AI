@@ -335,3 +335,18 @@ Shared memory is a programmer-managed on-chip scratchpad inside each Streaming M
 The clearest example is tiled GEMM. In naive GEMM every element of matrices A and B gets loaded from DRAM N times over, once for every dot product it participates in, giving arithmetic intensity of just 0.25 FLOP per byte. With tiling, each thread block loads one tile into shared memory and all threads compute their partial results against that local copy. Each element is read from DRAM exactly once, which drops total traffic from 2N cubed bytes down to 2N squared bytes. For N=64, that is a 64 times reduction in DRAM traffic and raises arithmetic intensity from 0.25 up to 16 FLOP per byte, which is the difference between a completely memory-starved kernel and one approaching the ridge point.
 
 The on-chip versus off-chip memory gap is so large that direct programmer control over what stays on chip is essential for performance, and shared memory is how the GPU gives you that control.
+---
+
+**Q66.** What is a warp and how does the GPU use it to hide memory latency?
+
+A warp is a group of 32 threads that execute the same instruction simultaneously under the SIMT (Single Instruction Multiple Threads) model. It is the basic unit of scheduling on an NVIDIA GPU.
+
+- Every SM has 4 warp schedulers. Each scheduler tracks a pool of active warps and issues one instruction per clock cycle to whichever warp is ready to run.
+- When a warp issues a memory load from DRAM, it gets marked as not ready and the scheduler immediately switches to a different warp that has its data and can keep going.
+- On a CPU, switching between threads is expensive because you have to save all the registers from the current thread out to memory and load all the registers for the next thread back in. The GPU never does this. Every active warp has its registers permanently allocated in the register file at all times, so switching is just the scheduler pointing at a different warp on the next clock cycle. Nothing gets saved, nothing gets loaded, the switch itself costs nothing.
+- This works because the GPU register file is enormous. With enough registers per SM to hold every active warp simultaneously, all their state stays resident and any warp can be picked up instantly.
+- Occupancy is the ratio of active warps to the maximum possible warps on an SM. Higher occupancy gives the scheduler more warps to choose from, which means more opportunities to cover memory stalls with useful work.
+
+A concrete example: imagine a GEMM kernel where every warp loads a tile from DRAM. The first warp fires off its load and stalls. The scheduler instantly switches to the second warp, which fires its load and stalls. By the time the scheduler cycles back to the first warp, the data has arrived and it can continue computing. Without this switching, every load would freeze the whole SM and most of the execution units would sit idle waiting on memory.
+
+The whole design is built around one idea: instead of making memory faster or adding prediction logic like a CPU does, the GPU keeps thousands of threads in flight so the math units never have to wait.
