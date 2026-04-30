@@ -88,6 +88,7 @@ One sentence on how it all fits together or why it matters.
 
 - **Talk like a person, not a textbook** — explain concepts the way you would say them out loud to a smart classmate. If the sentence would sound unnatural spoken aloud, rewrite it.
 - **Numbers and formulas are fine — but keep the words around them natural** — you can say "take N=64, naive gives you AI of 0.25 and tiled jumps it to 16" but do not frame it with textbook phrases like "a concrete way to see why that matters" or "as an illustration of this concept." Just say it directly.
+- **For concept questions, describe the mechanism — not the numbers** — if the question is "why does X work better than Y", explain what is actually happening in plain language. Say "each element only makes the trip from DRAM once instead of over and over" rather than calculating exact ratios. The numbers do not make the answer better if the question is about understanding, not calculation. Save specific numbers for questions that actually ask you to compute something.
 - **Use the technical vocabulary** — SIMT, warp, DRAM, arithmetic intensity, FLOP/byte, ridge point, MAC, etc. These words signal you know the material.
 - **Spell out acronyms on first use** — write the full name in parentheses the first time you use an acronym. For example, SIMT (Single Instruction Multiple Threads), SM (Streaming Multiprocessor), DRAM (Dynamic Random Access Memory), MAC (Multiply Accumulate). After that, use the acronym freely.
 - **Use () to gloss jargon terms** — when you use a technical term that is not self-explanatory, add a short plain-English translation in parentheses right after it. Keep it to one short phrase. For example: "zero-overhead context switching (meaning the switch costs nothing — no registers saved or loaded)" or "occupancy (the ratio of active warps to the maximum the SM can hold)". This lets you keep the technical vocabulary while making the meaning immediately clear.
@@ -110,11 +111,13 @@ One sentence on how it all fits together or why it matters.
 3. Give one concrete example from the course
 4. Close with why it matters or the big picture insight
 
-### "Why" or motivation question ("Why do we use X?")
-1. State the core problem X solves
-2. Give the numbers if you have them (e.g., "DRAM costs 170× more energy than a multiply")
-3. Give a concrete example from the course that shows it working
+### "Why" or motivation question ("Why do we use X?" / "Why does X perform better than Y?")
+1. State the core problem — what is broken or slow about the baseline
+2. Explain the mechanism that fixes it in plain language — what actually changes and why it helps
+3. Name the tradeoff if there is one — nothing is free
 4. Close with the big picture
+
+Note: do not lead with numbers for these questions. Describe what is happening first. If a number naturally fits ("each element loads from DRAM once instead of N times"), use it. If it requires a calculation, skip it unless the question asked for one.
 
 ### Interpretation question ("Interpret this plot / diagram")
 1. Name the axes and what they represent
