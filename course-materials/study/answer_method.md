@@ -10,6 +10,12 @@ Listing words without explaining them. Saying "CUDA cores, tensor cores, shared 
 
 ---
 
+## Slide Accuracy Rule
+
+Every answer must be grounded in the course slides (weeks 1–5). Do not add facts from general knowledge that are not in the slides. If something is not in the slides, either leave it out or flag it clearly as outside the course material.
+
+---
+
 ## Answer Structure (use for any question)
 
 ### 1. Open with a definition
@@ -40,6 +46,7 @@ One sentence on how it all fits together or why it matters.
 - **Bullet points over paragraphs** — easier to follow out loud and easier to grade.
 - **Bullets should flow into each other** — each line continues the thought from the one before, like a spoken explanation broken into lines. Not a list of disconnected facts.
 - **Minimum filler** — skip "I think", "basically", "kind of". Be direct.
+- **Slides only** — only include content covered in the course slides. Do not add outside knowledge.
 
 ---
 
@@ -76,6 +83,7 @@ One sentence on how it all fits together or why it matters.
 | "shared RAM" | "shared memory, an on-chip SRAM scratchpad shared within a thread block" |
 | "design algorithm and hardware together" (stop there) | Add WHY + example |
 | No roofline interpretation | Name axes → find ridge → classify kernel → state fix |
+| Adding facts not in the slides | Flag it or leave it out |
 
 ---
 
