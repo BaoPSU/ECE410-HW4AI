@@ -54,6 +54,7 @@ One sentence on how it all fits together or why it matters.
 
 ## Style Rules
 
+- **Talk like a person, not a textbook** — explain concepts the way you would say them out loud to a smart classmate. If the sentence would sound unnatural spoken aloud, rewrite it. Avoid over-precise phrasing that no one would actually say in conversation.
 - **Use the technical vocabulary** — SIMT, warp, DRAM, arithmetic intensity, FLOP/byte, ridge point, MAC, etc. These words signal you know the material.
 - **Spell out acronyms on first use** — write the full name in parentheses the first time you use an acronym. For example, SIMT (Single Instruction Multiple Threads), SM (Streaming Multiprocessor), DRAM (Dynamic Random Access Memory), MAC (Multiply Accumulate). After that, use the acronym freely.
 - **No parentheses for anything else** — fold extra detail into the sentence instead. Parentheses are only for spelling out acronyms.
@@ -71,7 +72,7 @@ One sentence on how it all fits together or why it matters.
 
 ### Definition question ("What is X?")
 1. Define X in one sentence, spelling out any acronym
-2. List key components/properties with roles
+2. List key components/properties with roles, explained in plain spoken language
 3. Close with why it matters or the big picture insight
 
 ### "Why" or motivation question ("Why do we use X?")
@@ -104,6 +105,7 @@ One sentence on how it all fits together or why it matters.
 | Using colons or dashes mid-sentence | Rewrite as a full natural sentence |
 | Using an acronym without spelling it out first | Write the full name in parentheses on first use |
 | Answering without checking course_notes.md first | Always check notes before answering |
+| Writing like a textbook definition | Write like you are explaining it out loud to someone |
 
 ---
 
