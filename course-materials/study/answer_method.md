@@ -33,7 +33,7 @@ Each bullet = one term + its role, and each line should continue the thought fro
 ### 3. Close with the big picture
 One sentence on how it all fits together or why it matters.
 
-> "The whole system is designed around one idea: always keep the math units busy by switching between warps instead of ever waiting on slow memory."
+> "The whole system is designed around one idea — always keep the math units busy by switching between warps instead of ever waiting on slow memory."
 
 ---
 
@@ -42,6 +42,7 @@ One sentence on how it all fits together or why it matters.
 - **Use the technical vocabulary** — SIMT, warp, DRAM, arithmetic intensity, FLOP/byte, ridge point, MAC, etc. These words signal you know the material.
 - **No parentheses unless necessary** — fold the extra detail into the sentence instead.
 - **No dashes mid-sentence** — write complete sentences that flow naturally when spoken aloud. If a dash is tempting, either end the sentence and start a new one, or fold the detail in directly.
+- **No colons mid-sentence** — same rule as dashes. Write it out as a full natural sentence instead.
 - **Streamlined and friendly** — not robotic, not stiff. Write like you're explaining to a smart classmate.
 - **Bullet points over paragraphs** — easier to follow out loud and easier to grade.
 - **Bullets should flow into each other** — each line continues the thought from the one before, like a spoken explanation broken into lines. Not a list of disconnected facts.
@@ -82,8 +83,9 @@ One sentence on how it all fits together or why it matters.
 | "CUDA cores is basic math" | "CUDA cores handle scalar FP32/INT32 arithmetic" |
 | "shared RAM" | "shared memory, an on-chip SRAM scratchpad shared within a thread block" |
 | "design algorithm and hardware together" (stop there) | Add WHY + example |
-| No roofline interpretation | Name axes → find ridge → classify kernel → state fix |
+| No roofline interpretation | Name axes, find ridge, classify kernel, state fix |
 | Adding facts not in the slides | Flag it or leave it out |
+| Using colons or dashes mid-sentence | Rewrite as a full natural sentence |
 
 ---
 
@@ -94,9 +96,9 @@ One sentence on how it all fits together or why it matters.
 - Inside each SM, the **CUDA cores** handle the basic scalar math, your FP32 and INT32 operations.
 - Sitting alongside them are the **Tensor cores**, purpose-built for MMA, running D = A×B + C on a 4×4 matrix in a single clock cycle.
 - To keep all of those cores busy, the SM has 4 processing blocks, each with its own **warp scheduler** managing warps. A warp is a group of 32 threads executing the same instruction lockstep under SIMT.
-- When one warp stalls waiting on memory, the scheduler immediately swaps in another ready warp. That's how the GPU hides the roughly 100x latency gap between on-chip SRAM and off-chip DRAM.
+- When one warp stalls waiting on memory, the scheduler immediately swaps in another ready warp. That is how the GPU hides the latency gap between on-chip SRAM and off-chip DRAM.
 - Each SM also has a massive **register file** with 65,536 32-bit registers, which is the fastest storage on the chip and private to each thread.
-- Then there's **shared memory**, a programmer-managed on-chip SRAM scratchpad of about 228 KB on the H100. All threads in the same block can use it together to reuse data without going out to slow global memory.
+- Then there is **shared memory**, a programmer-managed on-chip SRAM scratchpad of about 228 KB on the H100. All threads in the same block can use it together to reuse data without going out to slow global memory.
 - **Load/store units** handle moving data between the SM and the rest of the memory hierarchy, and **Special Function Units** take care of transcendental math like sin, cos, and exp.
 - Finally, an **L1 cache** sits physically unified with shared memory but is managed automatically by the hardware rather than the programmer.
-- The whole design comes down to one idea: keep the math units fed and busy at all times, using warp switching to cover for the inevitable memory stalls.
+- The whole design comes down to one idea — keep the math units fed and busy at all times, using warp switching to cover for the inevitable memory stalls.
