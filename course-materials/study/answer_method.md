@@ -21,13 +21,13 @@ Every answer must be grounded in the course slides (weeks 1–5). Do not add fac
 ### 1. Open with a definition
 One clear sentence that defines what the thing IS, not just what it contains.
 
-> "A Streaming Multiprocessor is the fundamental execution unit of an NVIDIA GPU..."
+> "A Streaming Multiprocessor (SM) is the fundamental execution unit of an NVIDIA GPU..."
 
 ### 2. Bullet out the key components or ideas — line by line, flowing
 Each bullet = one term + its role, and each line should continue the thought from the one before. Don't write isolated facts — write like each bullet is the next sentence in a spoken explanation.
 
 > - Inside each SM, the **CUDA cores** handle the basic scalar math, your FP32 and INT32 operations.
-> - Sitting alongside them are the **Tensor cores**, purpose-built for MMA on a 4×4 matrix per clock cycle.
+> - Sitting alongside them are the **Tensor cores**, purpose-built for MMA (Matrix Multiply Accumulate) on a 4×4 matrix per clock cycle.
 > - To keep those cores busy, the SM has **warp schedulers** that manage groups of 32 threads and instantly switch to a ready warp whenever the current one stalls on memory.
 
 ### 3. Close with the big picture
@@ -40,7 +40,8 @@ One sentence on how it all fits together or why it matters.
 ## Style Rules
 
 - **Use the technical vocabulary** — SIMT, warp, DRAM, arithmetic intensity, FLOP/byte, ridge point, MAC, etc. These words signal you know the material.
-- **No parentheses unless necessary** — fold the extra detail into the sentence instead.
+- **Spell out acronyms on first use** — write the full name in parentheses the first time you use an acronym. For example, SIMT (Single Instruction Multiple Threads), SM (Streaming Multiprocessor), DRAM (Dynamic Random Access Memory), MAC (Multiply Accumulate). After that, use the acronym freely.
+- **No parentheses for anything else** — fold extra detail into the sentence instead. Parentheses are only for spelling out acronyms.
 - **No dashes mid-sentence** — write complete sentences that flow naturally when spoken aloud. If a dash is tempting, either end the sentence and start a new one, or fold the detail in directly.
 - **No colons mid-sentence** — same rule as dashes. Write it out as a full natural sentence instead.
 - **Streamlined and friendly** — not robotic, not stiff. Write like you're explaining to a smart classmate.
@@ -54,7 +55,7 @@ One sentence on how it all fits together or why it matters.
 ## For Each Question Type
 
 ### Definition question ("What is X?")
-1. Define X in one sentence
+1. Define X in one sentence, spelling out any acronym
 2. List key components/properties with roles
 3. Close with why it matters or the big picture insight
 
@@ -86,19 +87,20 @@ One sentence on how it all fits together or why it matters.
 | No roofline interpretation | Name axes, find ridge, classify kernel, state fix |
 | Adding facts not in the slides | Flag it or leave it out |
 | Using colons or dashes mid-sentence | Rewrite as a full natural sentence |
+| Using an acronym without spelling it out first | Write the full name in parentheses on first use |
 
 ---
 
 ## Example: SM Answer Done Right
 
-- A Streaming Multiprocessor is the fundamental execution unit of an NVIDIA GPU. The entire GPU is a collection of these, and the H100 has 132 of them.
+- A Streaming Multiprocessor (SM) is the fundamental execution unit of an NVIDIA GPU. The entire GPU is a collection of these, and the H100 has 132 of them.
 - Every computation you run on a GPU happens inside an SM, and the hardware scheduler decides which thread block goes to which one.
-- Inside each SM, the **CUDA cores** handle the basic scalar math, your FP32 and INT32 operations.
-- Sitting alongside them are the **Tensor cores**, purpose-built for MMA, running D = A×B + C on a 4×4 matrix in a single clock cycle.
-- To keep all of those cores busy, the SM has 4 processing blocks, each with its own **warp scheduler** managing warps. A warp is a group of 32 threads executing the same instruction lockstep under SIMT.
-- When one warp stalls waiting on memory, the scheduler immediately swaps in another ready warp. That is how the GPU hides the latency gap between on-chip SRAM and off-chip DRAM.
+- Inside each SM, the **CUDA (Compute Unified Device Architecture) cores** handle the basic scalar math, your FP32 and INT32 operations.
+- Sitting alongside them are the **Tensor cores**, purpose-built for MMA (Matrix Multiply Accumulate), running D = A×B + C on a 4×4 matrix in a single clock cycle.
+- To keep all of those cores busy, the SM has 4 processing blocks, each with its own **warp scheduler** managing warps. A warp is a group of 32 threads executing the same instruction lockstep under SIMT (Single Instruction Multiple Threads).
+- When one warp stalls waiting on memory, the scheduler immediately swaps in another ready warp. That is how the GPU hides the latency gap between on-chip SRAM and off-chip DRAM (Dynamic Random Access Memory).
 - Each SM also has a massive **register file** with 65,536 32-bit registers, which is the fastest storage on the chip and private to each thread.
 - Then there is **shared memory**, a programmer-managed on-chip SRAM scratchpad of about 228 KB on the H100. All threads in the same block can use it together to reuse data without going out to slow global memory.
-- **Load/store units** handle moving data between the SM and the rest of the memory hierarchy, and **Special Function Units** take care of transcendental math like sin, cos, and exp.
+- **Load/store units** handle moving data between the SM and the rest of the memory hierarchy, and **SFUs (Special Function Units)** take care of transcendental math like sin, cos, and exp.
 - Finally, an **L1 cache** sits physically unified with shared memory but is managed automatically by the hardware rather than the programmer.
 - The whole design comes down to one idea — keep the math units fed and busy at all times, using warp switching to cover for the inevitable memory stalls.
