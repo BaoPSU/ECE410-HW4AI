@@ -77,6 +77,26 @@
 **Q22.** Vector addition (N=1M, FP32): FLOPs = N, Bytes = 3N×4 (2 reads + 1 write). Compute AI.
 > AI = N / (12N) = **1/12 ≈ 0.083 FLOP/byte → deeply memory-bound**
 
+**Q22b.** [ORAL EXAM STYLE] You are shown a roofline plot. Walk me through how you interpret it.
+> **Step 1 — Identify the axes**: X-axis = Arithmetic Intensity (FLOP/byte, log scale). Y-axis = Attainable Performance (GFLOP/s, log scale).
+>
+> **Step 2 — Identify the two ceilings**:
+> - **Diagonal line** rising left-to-right = memory bandwidth ceiling (slope = Peak_BW). Kernels on this line are memory-bound.
+> - **Horizontal line** flat at the top = peak compute ceiling. Kernels on this line are compute-bound.
+>
+> **Step 3 — Find the ridge point**: Where the diagonal meets the horizontal. Ridge point I* = Peak_Compute / Peak_BW. This is the minimum AI needed to be compute-bound.
+>
+> **Step 4 — Read each kernel dot**:
+> - Dot is **left of ridge** → memory-bound. Attainable performance = AI × Peak_BW. Fix: reduce DRAM traffic (tile, fuse, increase data reuse).
+> - Dot is **right of ridge** → compute-bound. Attainable performance = Peak_Compute. Fix: more arithmetic units or better ILP.
+> - Dot is **below its ceiling** → not hitting the roof — another bottleneck (occupancy, synchronization, etc.).
+>
+> **Critical insight to state**: "AI is a property of the algorithm, not the hardware. Hardware only moves the ridge point. You cannot make a kernel compute-bound by adding memory bandwidth — you can only lower the ridge point threshold."
+>
+> **Example (CF02: Peak = 10 TFLOP/s, BW = 320 GB/s, I* = 31.25)**:
+> - GEMM (AI = 170.67) → right of ridge → compute-bound → ceiling = 10,000 GFLOP/s
+> - Vector Add (AI = 0.083) → left of ridge → memory-bound → ceiling = 26.67 GFLOP/s
+
 ---
 
 ## Section C: GPU Architecture
@@ -103,8 +123,25 @@
 > **Shared memory**: per-SM SRAM, ~1 TB/s bandwidth, low latency, shared within a thread block.
 > **Global memory**: DRAM, ~192–3350 GB/s, high latency, accessible by all threads.
 
-**Q30.** What is a Streaming Multiprocessor (SM)?
-> The core GPU execution unit containing CUDA cores, tensor cores, shared memory, and warp schedulers. Thread blocks are assigned to SMs.
+**Q30.** What is a Streaming Multiprocessor (SM)? Define it and list ALL key internal components with their roles.
+> **Definition**: The SM is the fundamental execution unit of an NVIDIA GPU. A GPU consists of many SMs (H100: 132); the hardware assigns one thread block to one SM. All computation happens inside SMs.
+>
+> **Key components:**
+> | Component | Role |
+> |---|---|
+> | **CUDA cores** | Scalar arithmetic — FP32/INT32 ALU operations |
+> | **Tensor cores** | Matrix-multiply accelerators — one 4×4×4 FMA per cycle; built for GEMM in deep learning |
+> | **Warp schedulers (×4)** | Each SM has 4 schedulers. A warp = 32 threads SIMT. Switch to a ready warp every cycle to **hide memory latency** |
+> | **Register file** | ~16K 32-bit registers per SM — fastest storage, local to each thread |
+> | **Shared memory / L1 SRAM** | On-chip SRAM shared by all threads in a block (~192–228 KB). Programmer-managed scratchpad (~1 TB/s) for data reuse |
+> | **Load/Store units** | Handle memory traffic between SM and the cache/DRAM hierarchy |
+> | **Special Function Units (SFUs)** | Hardware units for transcendentals: sin, cos, exp, reciprocal |
+> | **L1 cache** | Physically unified with shared memory; hardware-managed portion |
+>
+> **How they fit together**: Warp schedulers issue instructions to CUDA or Tensor cores. When a warp stalls on a load, the scheduler swaps in another ready warp — this is latency hiding without branch prediction or OOO logic. Fast shared memory lets threads reuse data without going to slow DRAM.
+
+**Q30b.** What does an SM do when a warp is stalled waiting for memory?
+> The warp scheduler **switches to another ready warp** and issues its instructions. This is how GPUs hide DRAM latency — they keep the execution units busy by running other warps instead of stalling. This requires high occupancy (many active warps) to work.
 
 **Q31.** What does `kernel<<<M, T>>>(args)` mean?
 > Launch kernel with **M thread blocks**, each containing **T threads**. Total threads = M × T.
@@ -141,8 +178,23 @@
 
 ## Section E: HW/SW Codesign & Partitioning
 
-**Q40.** What is the HW/SW codesign principle?
-> Co-optimize the algorithm and hardware together rather than designing them independently. Identify compute-bound kernels and build fixed datapaths; keep irregular or memory-bound ops in software.
+**Q40.** What is HW/SW co-design? Define it, explain WHY it matters, and give examples.
+> **Definition**: Designing hardware and algorithm/software **simultaneously and interdependently** — not sequentially (don't build the CPU first and then try to map a neural net onto it).
+>
+> **Why it matters:**
+> 1. **Data movement dominates energy**: DRAM read = 640 pJ, FP32 multiply = 3.7 pJ → **170× more expensive** to move data than compute. An algorithm that ignores this will be bandwidth-limited regardless of hardware quality.
+> 2. **Hardware can't be optimal without knowing the workload**: can't correctly size registers, SRAM, memory bandwidth, or datapath width without knowing the algorithm's access patterns.
+> 3. **Sequential design wastes potential**: designing hardware first and then adapting software achieves a fraction of co-designed performance.
+>
+> **Concrete examples:**
+> - **GEMM tiling**: Tile size T is chosen to match on-chip SRAM size → 64× DRAM traffic reduction. The algorithm is shaped by the hardware resource.
+> - **Tensor cores**: NVIDIA added dedicated matrix-multiply HW because DNN training is dominated by GEMM. The hardware is shaped by the algorithm.
+> - **Google TPU**: 256×256 systolic array built specifically for matrix multiply (dominant neural net op) → **83× perf/watt over CPU**.
+>
+> **The key sentence to say out loud**: "You cannot optimize hardware and software in isolation — the best systems co-optimize both simultaneously."
+
+**Q40b.** Why does co-design achieve better perf/watt than CPU for deep learning?
+> CPUs are designed for general-purpose workloads: branch prediction, out-of-order execution, large caches. These are wasted on DNN workloads which are regular, data-parallel, and dominated by GEMM. Co-designed hardware (TPU, GPU Tensor cores) eliminates that overhead and dedicates area/power to the specific operations DNN inference/training actually uses.
 
 **Q41.** When should you accelerate a kernel in hardware?
 > When it consumes **>10% of runtime** (Amdahl's law) AND is **compute-bound at the target tile size** with regular, predictable memory access patterns.
