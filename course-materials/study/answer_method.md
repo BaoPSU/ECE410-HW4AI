@@ -1,7 +1,7 @@
 # Answer Method for Practice & Oral Exams
 
 Based on quiz feedback (scored 2.3/10 on first attempt) and refined on 2026-04-29.
-Target: 10/10 on every question.
+Target: 8/10 to pass. Students typically score 5-6, so 8 is above average and is the realistic goal. 10/10 is the ideal — same structure, just a more specific or insightful concrete example.
 
 ---
 
@@ -91,7 +91,8 @@ One sentence on how it all fits together or why it matters.
 - **Bullets should flow into each other** — each line continues the thought from the one before, like a spoken explanation broken into lines. Not a list of disconnected facts.
 - **Minimum filler** — skip "I think", "basically", "kind of". Be direct.
 - **Slides only for facts, logic is fine** — only include facts and numbers from the course slides, but logical conclusions drawn from those facts do not need a citation.
-- **No hardware-specific performance numbers** — do not cite specific TFLOPS ratings, GB/s bandwidths, chip die sizes, or any number that only applies to one chip model. No one can memorize those. Explain the principle and the ratio instead. For example, say "halving precision roughly doubles throughput because the same hardware fits twice as many operands" rather than citing exact TFLOPS figures.
+- **Include equations for concept-level formulas** — formulas that define the concept should be included: `AI = FLOPs / Bytes`, ridge point = Peak / BW, tiled GEMM traffic = 2N², `AI = N/4`. These are small and show understanding.
+- **Skip hardware-specific chip numbers** — do not cite specific TFLOPS ratings, exact bandwidth figures, or die-level specs for any chip. No one can memorize those. For precision formats, explain the principle and ratio instead: "halving bits roughly doubles throughput" rather than citing exact throughput numbers.
 
 ---
 
@@ -133,6 +134,7 @@ One sentence on how it all fits together or why it matters.
 | Answer with no concrete example | Every answer needs at least one specific example from the course |
 | Adding facts or numbers not in the slides | Flag it or leave it out |
 | Citing specific TFLOPS/GB/s numbers for a chip | Explain the principle and ratio instead ("halving bits doubles throughput") |
+| Skipping the formula for arithmetic intensity | AI = FLOPs / Bytes is small, testable, and shows understanding — include it |
 | Using colons or dashes mid-sentence | Rewrite as a full natural sentence |
 | Using an acronym without spelling it out first | Write the full name in parentheses on first use |
 | Answering without checking course_notes.md first | Always check notes before answering |
