@@ -26,6 +26,12 @@ Listing words without explaining them. Saying "CUDA cores, tensor cores, shared 
 
 ---
 
+## IMPORTANT — Read This Before Answering Anything
+
+Before answering any question, read `/home/bao/course_notes.md` in full. That file contains all the course facts for weeks 1–5. Do not answer until you have read it.
+
+---
+
 ## How Claude Should Look Up Information
 
 Before answering any question, Claude should check the following sources in this order:
