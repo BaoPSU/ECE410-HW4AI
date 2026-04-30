@@ -7,7 +7,28 @@
 - **Memory Wall**: Compute has outpaced memory bandwidth for 30+ years → most workloads are **memory-bound**
 - **Energy**: DRAM read (64-bit) ≈ **640 pJ** vs FP32 multiply ≈ **3.7 pJ** → 170× more expensive to move data than compute
 - **Architecture evolution**: CPU → CPU+GPU → heterogeneous → extreme heterogeneity (NPU, TPU, FPGA, ASIC)
-- **HW/SW Codesign**: Co-optimize algorithm + hardware together; outperforms siloed approaches
+- **HW/SW Codesign**: Co-optimize algorithm + hardware together; outperforms siloed approaches (see §1a below)
+
+---
+
+## 1a. HW/SW Co-design — Deep Dive
+
+**Definition**: Design hardware and algorithm/software **simultaneously and interdependently** — not sequentially.
+
+**Why it matters (motivations):**
+1. **Data movement dominates energy**: DRAM read = 640 pJ, FP32 multiply = 3.7 pJ → **170× more expensive** to move data than compute. An algorithm oblivious to this wastes energy regardless of hardware quality.
+2. **Hardware can't be optimal without knowing the workload**: without knowing the algorithm, you can't correctly size registers, SRAM, memory bandwidth, or datapath width.
+3. **Sequential design leaves performance on the table**: designing hardware first (CPU) and then mapping a neural network to it achieves a fraction of what co-designed hardware achieves.
+
+**Concrete examples:**
+| Example | Co-design insight |
+|---------|------------------|
+| **GEMM tiling** | Tile size T chosen to match on-chip SRAM size → 64× DRAM traffic reduction. Algorithm shaped by hardware resource. |
+| **Tensor cores** | NVIDIA added dedicated matrix-multiply HW because DNN training is dominated by GEMM. Hardware shaped by algorithm. |
+| **Google TPU** | 256×256 systolic array built because matrix multiply is the dominant neural net op → **83× perf/watt over CPU** |
+| **This project (K-Means PIM)** | Distance kernel is memory-bound (AI = 1.68 FLOP/byte < ridge = 18.23). Co-design: move compute near memory (PIM chiplet, 16 TB/s) rather than moving data to compute. |
+
+**The key sentence**: "You cannot optimize hardware and software in isolation — the best systems co-optimize both simultaneously."
 
 ---
 
@@ -21,6 +42,34 @@
 | 1 MAC = 2 FLOPs | 1 multiply + 1 add |
 
 **H100 example**: Peak = 67 TFLOPS FP32, BW = 3.35 TB/s → I* ≈ 20 FLOP/byte
+
+---
+
+## 2a. Roofline Plot — How to Interpret
+
+**Axes:**
+- **X-axis**: Arithmetic Intensity (FLOP/byte), log scale — how many FLOPs per byte of DRAM data
+- **Y-axis**: Attainable Performance (GFLOP/s), log scale — actual achievable throughput
+
+**Two ceilings:**
+- **Diagonal line** (memory bandwidth roof): Performance = AI × Peak_BW → memory-bound region (left of ridge)
+- **Horizontal line** (compute roof): Performance = Peak_Compute → compute-bound region (right of ridge)
+
+**Ridge point I\*** = Peak_Compute / Peak_BW — the boundary between the two regions.
+
+**Reading a kernel:**
+```
+AI < I*  → memory-bound  → fix: reduce DRAM traffic (tile, fuse, reuse)
+AI > I*  → compute-bound → fix: more arithmetic units / better ILP
+```
+
+**Critical insight**: AI is a property of the **algorithm**, not the hardware. Hardware only moves the ridge point. You cannot make a kernel compute-bound by adding memory bandwidth — you can only lower the ridge point.
+
+**Example (CF02: Peak = 10 TFLOP/s, BW = 320 GB/s, I* = 31.25 FLOP/byte):**
+| Kernel | AI | vs I* | Bound | Ceiling |
+|--------|----|----|-------|---------|
+| Dense GEMM (N=1024) | 170.67 | >> | Compute-bound | 10,000 GFLOP/s |
+| Vector Add | 0.083 | << | Memory-bound | 26.67 GFLOP/s |
 
 ---
 
@@ -66,12 +115,28 @@
 
 ## 6. GPU Architecture
 
+### Streaming Multiprocessor (SM) — Full Definition
+
+**The SM is the fundamental execution unit of an NVIDIA GPU.** The GPU consists of many SMs (H100: 132). The hardware scheduler assigns one thread block to one SM. All computation happens inside SMs.
+
+| Component | Role |
+|---|---|
+| **CUDA cores** | Scalar arithmetic — FP32/INT32 ALU operations (one per clock per core) |
+| **Tensor cores** | Hardware matrix-multiply units — one 4×4×4 FMA per cycle; built for GEMM in deep learning |
+| **Warp schedulers** (×4) | Each SM has 4 schedulers. A warp = 32 threads running lockstep (SIMT). Schedulers switch to a ready warp every cycle to **hide memory latency** |
+| **Register file** | ~16K 32-bit registers per SM — fastest storage, local to each thread |
+| **Shared memory / L1 SRAM** | On-chip SRAM shared by all threads in a block (~192–228 KB). Programmer-managed scratchpad (~1 TB/s). Key for data reuse |
+| **Load/Store units** | Handle memory traffic between SM and the cache/DRAM hierarchy |
+| **Special Function Units (SFUs)** | Hardware units for transcendentals: sin, cos, exp, reciprocal |
+| **L1 cache** | Physically unified with shared memory; hardware-managed portion |
+
+**How it fits together**: Warp schedulers issue instructions to CUDA cores or Tensor cores. When a warp stalls on a memory load, the scheduler swaps in another ready warp — this is how GPUs hide latency without branch prediction or out-of-order logic. Fast shared memory lets threads in a block cooperate and reuse data without going to slow DRAM.
+
 ### Key Terms
 | Term | Definition |
 |---|---|
 | **SIMT** | Single Instruction, Multiple Threads — all threads in a warp run same instruction |
 | **Warp** | 32 threads executing lockstep (NVIDIA) |
-| **SM** (Streaming Multiprocessor) | Core GPU execution unit; has CUDA cores, tensor cores, SRAM |
 | **Thread Block** | Group of threads sharing one SM's resources |
 | **Grid** | All thread blocks executing a kernel |
 | **Occupancy** | Active warps / max warps per SM |
