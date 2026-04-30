@@ -16,9 +16,14 @@ Modern AI workloads are **memory-bound**, not compute-bound. Processors got fast
 ### Energy Is the Real Constraint
 Moving data costs far more than computing with it:
 - FP32 multiply: ~**3.7 pJ**
-- DRAM 64-bit read: ~**640 pJ** → **170× more expensive**
+- DRAM (Dynamic Random Access Memory) 64-bit read: ~**640 pJ** — 170× more expensive
 
 This means the primary goal of hardware design for AI is to **minimize data movement**, not just maximize compute throughput.
+
+### AI vs ML
+- ML (Machine Learning) is a subset of AI focused on algorithms that improve through experience, such as neural networks.
+- AI (Artificial Intelligence) is the broader concept: machines performing tasks requiring human intelligence. The ultimate goal is AGI (Artificial General Intelligence).
+- All ML is AI, but not all AI is ML.
 
 ### Architecture Evolution
 ```
@@ -26,8 +31,24 @@ CPU → CPU + GPU → Heterogeneous → Extreme Heterogeneity
                                   (NPU, TPU, FPGA, ASIC, VPU)
 ```
 
-### HW/SW Codesign
-Design the algorithm and hardware **together**. Don't optimize software first, then bolt on hardware. The best systems co-optimize both simultaneously.
+### HW/SW Co-design
+- Started in the 1990s. Core idea: concurrent design of hardware and software components in a single design effort.
+- HW/SW co-design deals with the HW/SW interface directly.
+- Broader definition: concurrent design across ALL layers of the compute stack.
+- From a flexibility standpoint, as much as possible should stay in software since hardware is expensive and slow to change.
+- Why it matters for AI/ML:
+  - Performance: traditional HW assumes fixed SW, traditional SW assumes fixed HW. Co-design optimizes both simultaneously.
+  - Specialized acceleration: AI algorithms like matrix multiply and convolutions benefit from custom hardware tailored to those operations.
+  - Memory bottlenecks: co-designing memory hierarchies with software scheduling minimizes data movement.
+  - Energy efficiency: tailoring hardware precisely to ML workloads dramatically reduces power consumption.
+
+### Why Design New Hardware?
+- Problem 1: Data locality — traditional architecture has high-latency, high-energy off-chip memory access.
+- Problem 2: Need for parallelism — traditional architecture is insufficient for massively parallel AI workloads.
+- Problem 3: Compute closer to the physics — bringing computation closer to memory reduces energy.
+
+### Design Trade-offs (PPAC)
+Performance, Power, Area, Cost — every hardware decision involves all four. Also includes flexibility, design complexity, scalability, and time-to-market.
 
 ---
 
@@ -37,7 +58,7 @@ Design the algorithm and hardware **together**. Don't optimize software first, t
 ```
 AI = FLOPs / Bytes    [FLOP/byte]
 ```
-Measures how compute-heavy a kernel is relative to its memory traffic. High AI = compute-bound candidate.
+Measures how compute-heavy a kernel is relative to its memory traffic. High AI = compute-bound candidate. **AI says nothing about bottlenecks on its own — you need the roofline for that.**
 
 ### Roofline Model
 ```
@@ -53,13 +74,26 @@ I* = Peak_Compute / Bandwidth    [FLOP/byte]
 |---|---|---|
 | If AI > I* | Compute-bound | attainable = Peak Compute |
 
-**Example (H100):** Peak = 67 TFLOPS, BW = 3.35 TB/s → I* = 20 FLOP/byte
+The ridge point is the ideal place for a kernel to sit — it is the minimum arithmetic intensity needed to fully utilize peak compute without being held back by memory.
 
 ### Hardware Knobs vs Algorithm Knobs
 - **Higher BW** → lower ridge point → more kernels become compute-bound
 - **Higher Peak Compute** → higher ridge point → harder to be compute-bound
 - **Higher AI** (via tiling/reuse) → operating point moves right → toward compute-bound
 - You cannot change AI by changing hardware — AI is a property of the algorithm
+
+### If Compute-bound But Below Roofline
+1. Instruction-level parallelism — long dependency chains serialize execution, unrolling loops helps.
+2. Occupancy — too few warps active due to high register usage or large shared memory, scheduler stalls.
+3. Instruction mix — integer/address/branch ops mixed in reduce floating point unit utilization.
+4. Precision mismatch — using FP64 peak vs FP32 roofline gives wrong ceiling.
+5. Tensor core underutilization — matrix dims not multiples of 16 means scalar CUDA cores used instead.
+
+### If Memory-bound But Below Roofline
+- Non-coalesced access — threads not accessing consecutive addresses collapses bandwidth.
+- Cache thrashing — working set slightly larger than cache, data evicted and re-fetched.
+- Too few in-flight memory requests — DRAM pipeline stays empty.
+- Atomic operations — many threads writing same location serializes.
 
 ---
 
@@ -100,6 +134,12 @@ AI = 2N³ / (2N² × 4)
    = N/4
 ```
 
+### Tile Size Tradeoff
+- Small tile: low SRAM usage, high occupancy, but low AI — memory-bound.
+- Medium tile: balanced, sweet spot for most GPUs.
+- Large tile: high AI, but low occupancy (few blocks per SM) and register spills.
+- Tile size is programmer-controlled and empirically determined. There is no single universally optimal size.
+
 ### Execution Time
 ```
 t_memory  = Bytes / Bandwidth
@@ -107,54 +147,58 @@ t_compute = FLOPs / Peak_Compute
 Bottleneck = whichever is larger
 ```
 
-### Worked Example (N=32, T=8, BW=320 GB/s, Peak=10 TFLOPS)
-| | Naive | Tiled |
-|---|---|---|
-| Traffic | 2×32³×4 = 262,144 B | 2×32²×4 = 8,192 B |
-| AI | 0.25 FLOP/byte | N/4 = 8 FLOP/byte |
-| t_mem | 0.820 μs | 0.0256 μs |
-| t_compute | 0.0066 μs | 0.0066 μs |
-| Bound | Memory (125×) | Memory (3.9×) |
-
-Ridge point = 10,000/320 = 31.25 → both memory-bound; tiled needs N > 125 to cross ridge.
-
 ### Common Kernels and their AI
 | Kernel | AI | Bound |
 |---|---|---|
 | Vector add | 0.083 FLOP/byte | Memory |
 | Naive GEMM | 0.25 FLOP/byte | Memory |
-| Tiled GEMM (N=64, T=8) | 16 FLOP/byte | Depends on hardware |
-| Tiled GEMM (N=1024, T=8) | 256 FLOP/byte | Compute |
+| Tiled GEMM (N=64) | 16 FLOP/byte | Depends on hardware |
+| Tiled GEMM (N=1024) | 256 FLOP/byte | Compute |
 | Conv layers | 10–100 FLOP/byte | Often Compute |
 
 ---
 
 ## Unit 4: What Is a Kernel?
 
-A **kernel** is the function/operation in your code that takes the most total runtime — the bottleneck worth accelerating in hardware.
+A **kernel** in this context is a single computational routine that runs on a processor or GPU. It is the unit of work submitted to the hardware — a self-contained function that takes some inputs, performs a defined computation, and produces outputs.
 
-Key distinction: it's not necessarily the line that runs the *most times*, it's the one that takes the most *total time*:
-```python
-def train():
-    load_data()        # runs 1000×, takes 1% of total time
-    matrix_multiply()  # runs once per layer, takes 95% of total time  ← kernel
-    apply_relu()       # fast, 4% of time
-```
+Examples: matrix multiplication, vector addition, convolution, softmax. When you run a neural network, it is broken down into a sequence of kernel launches, each handling one operation.
 
-You find it by **profiling** — timing every function and finding what consumes >10% of runtime (Amdahl's law). That's what you build hardware to accelerate. Speeding up everything else barely moves the needle.
-
-The hardware (GPU, TPU, ASIC) is what you build to run the kernel faster — the kernel is the *what*, the hardware is the *how you speed it up*.
+You find the bottleneck kernel by **profiling** — timing every function and finding what consumes more than 10% of runtime. That is what you build hardware to accelerate.
 
 ---
 
 ## Unit 5: GPU Architecture
 
-### SIMT Execution Model
-- **SIMT**: Single Instruction, Multiple Threads
-- **Warp**: 32 threads executing the same instruction in lockstep — the basic scheduling unit
-- **SM** (Streaming Multiprocessor): execution unit containing CUDA cores, tensor cores, SRAM, warp schedulers
-- **Thread Block**: group of threads assigned to one SM; shares that SM's shared memory
-- **Grid**: all thread blocks for a kernel, distributed across all SMs
+### SIMT (Single Instruction Multiple Threads) Execution Model
+- **Warp**: 32 threads executing the same instruction in lockstep — the basic scheduling unit. AMD calls similar groupings wavefronts.
+- **SM (Streaming Multiprocessor)**: fundamental execution unit containing CUDA cores, Tensor cores, SRAM, and warp schedulers. The H100 has 132 SMs.
+- **Thread Block**: group of threads assigned to one SM. Shares that SM's shared memory. Up to 1024 threads.
+- **Grid**: all thread blocks for a kernel, distributed across all SMs.
+
+### SM Internal Components
+| Component | Role |
+|---|---|
+| CUDA cores | Scalar FP32/INT32 arithmetic |
+| Tensor cores | 4×4 MMA (Matrix Multiply Accumulate) in one clock cycle |
+| Warp schedulers (×4) | Manage warps, switch to ready warp when another stalls |
+| Register file | 65,536 × 32-bit registers per SM, private per thread, fastest storage |
+| Shared memory | ~228 KB on H100, on-chip SRAM, programmer-managed scratchpad |
+| L1 cache | Unified with shared memory, hardware-managed |
+| Load/store units | Move data between SM and memory hierarchy |
+| SFUs (Special Function Units) | Transcendental math — sin, cos, exp |
+
+### SIMT vs SIMD (Single Instruction Multiple Data)
+SIMT is a more flexible, programmable evolution of SIMD. It is not in Flynn's original taxonomy — coined by NVIDIA.
+
+| Dimension | SIMD (CPU) | SIMT (GPU) |
+|---|---|---|
+| Parallelism unit | Vector lane, fixed width 4/8/16 | Thread within warp, 32 threads |
+| Control flow | All lanes must execute identical op | Threads can branch, divergent paths serialized |
+| Register file | Shared vector regs mapped to scalar | Per-thread private regs, 65k 32-bit per SM |
+| Memory model | Shared cache/L1, no scratchpad control | Shared memory scratchpad + L1/L2 + HBM, programmer-managed |
+| Latency tolerance | Out-of-order exec + large caches | Zero-overhead warp switching, 1000s of threads hide latency |
+| Scalability | Fixed width, limited by ISA | Scales to 1000s of SMs, same code runs on any GPU size |
 
 ### Warp Divergence
 When threads in a warp take **different branches**, the GPU serializes both paths:
@@ -162,26 +206,21 @@ When threads in a warp take **different branches**, the GPU serializes both path
 // BAD — causes divergence within a warp
 if (threadIdx.x % 2 == 0) { ... } else { ... }
 ```
-- Throughput drops up to **2× per branch level**
-- Fix: ensure all 32 threads in a warp take the same path
+Throughput drops up to **2× per branch level**. Fix: ensure all 32 threads in a warp take the same path.
 
 ### Occupancy
 ```
 Occupancy = Active warps / Max warps per SM
 ```
-- Higher occupancy → warp scheduler has more ready warps → better latency hiding
-- **Limited by**: registers per thread, shared memory per block, thread block size
-- Low occupancy = idle compute units, poor performance even with high AI
+Higher occupancy means the warp scheduler has more ready warps and better latency hiding. Limited by registers per thread, shared memory per block, and thread block size.
 
-### CUDA Memory Hierarchy
+### CUDA (Compute Unified Device Architecture) Memory Hierarchy
 | Memory | Scope | Speed | Size |
 |---|---|---|---|
-| Registers | per-thread | fastest | 16K × 32-bit/thread |
-| Shared Memory | per-block (SM) | ~1 TB/s | 192–228 KB/SM |
+| Registers | per-thread | fastest | 65,536 × 32-bit per SM |
+| Shared Memory | per-block (SM) | ~1 TB/s | 228 KB/SM (H100) |
 | L2 Cache | GPU-wide | medium | 40 MB (A100) |
-| Global Memory | all threads | slow (~BW) | GBs (DRAM) |
-| Local Memory | per-thread spill | slow (DRAM) | — |
-| Constant Memory | all threads, R/O | cached | 64 KB |
+| Global Memory | all threads | slow | GBs (DRAM) |
 
 ### CUDA Kernel Launch
 ```cuda
@@ -189,22 +228,24 @@ kernel<<<M, T>>>(args)   // M blocks, T threads per block
 // Total threads = M × T
 // Threads per block T should be multiple of 32 (warp size)
 ```
-
-### GPU Comparison
-| GPU | Process | FP32 TFLOPS | SMs | SRAM/SM | HBM BW |
-|---|---|---|---|---|---|
-| V100 | 12nm | 125 | 80 | — | 900 GB/s |
-| A100 | 7nm | 312 (TF32) | 108 | 192 KB | 1.56 TB/s |
-| H100 | 4nm | 67 FP32 | 132 | 228 KB | 3.35 TB/s |
+If more blocks are requested than available, the GPU queues and schedules them over time. CUDA programs can be written without knowing the exact hardware configuration.
 
 ### Tensor Cores
-- Perform **small matrix multiplications** in one operation (4×4 and larger)
-- Mixed precision: **FP16 inputs → FP32 accumulation**
-- Generational speedups: Volta 8× → Ampere 16× → Hopper 32× → Blackwell further
+Perform small matrix multiplications in one operation. Mixed precision: FP16 inputs with FP32 accumulation. The V100 has 640 first-gen Tensor Cores. The A100 has 432 third-gen Tensor Cores with higher performance due to architectural improvements and mixed precision support including TF32, FP64, and BF16.
 
 ---
 
 ## Unit 6: CNN/DNN Fundamentals
+
+### Neural Networks as Matrix Operations
+A whole layer of neurons is just one matrix-vector multiply, which is why GPUs accelerate neural nets so effectively. One MAC (Multiply Accumulate) = one multiply + one add = 2 FLOPs. One layer with m neurons and n inputs = 2mn FLOPs.
+
+### GEMM (General Matrix Matrix Multiply) Is Everything
+Virtually every operation in a neural network reduces to GEMM:
+- Fully connected layers
+- Convolutions
+- Attention in transformers (Q, K, V projections and QKᵀ and AV)
+- Recurrent gate computations
 
 ### Key Formula
 ```
@@ -213,24 +254,98 @@ Conv2D FLOPs = 2 × N × C_in × K² × H_out × W_out
 ```
 
 ### ResNet-18 Reference Numbers
-- 11.69M parameters | **1.81B MACs** | 46.76 MB weights | 39.75 MB activations
-- Top MAC layer: Conv2d 7×7, 3→64 channels, 112×112 output → AI ≈ 61 FLOP/byte
+11.69M parameters, **1.81B MACs**, 46.76 MB weights, 39.75 MB activations.
 
 ### Precision Formats
 | Format | Bits | Key property |
 |---|---|---|
-| FP32 | 32 | Standard baseline |
-| FP16 | 16 | Narrow range, stability risk |
-| BF16 | 16 | FP32 exponent range, safer |
-| INT8 | 8 | 4× bandwidth reduction |
-| FP4 (E2M1) | 4 | Only 16 distinct values |
+| FP32 | 32 | Standard baseline, full dynamic range |
+| FP16 | 16 | Narrow exponent range, overflow risk during training |
+| BF16 | 16 | Same exponent range as FP32, safer for training, drop-in replacement |
+| INT8 | 8 | 4× bandwidth reduction, inference only |
+| FP4 (E2M1) | 4 | Only 16 distinct values, requires block scaling |
 
-**PTQ** — quantize trained model; fast, less accurate
-**QAT** — simulate quantization during training; better accuracy
+**BF16 (Brain Float 16)** was developed by Google Brain specifically for ML. It keeps the full 8-bit exponent from FP32, giving the same dynamic range. Converting between BF16 and FP32 is trivial — just add or drop the last 16 mantissa bits.
+
+**Why lower precision?** Halving precision doubles the number of operands that fit in a fixed data bus or register tile, giving 2× or 4× more MACs per cycle at the same silicon area and power budget.
+
+**PTQ (Post-Training Quantization)** — quantize trained model; fast, less accurate.
+**QAT (Quantization-Aware Training)** — simulate quantization during training; better accuracy, more expensive.
 
 ---
 
-## Unit 7: HW/SW Partitioning
+## Unit 7: Systolic Arrays
+
+A systolic array is a 2D grid of identical PEs (Processing Elements) that rhythmically compute and pass data to their neighbors. The name comes from an analogy to the human heart — data pulses through the array in a synchronized fashion.
+
+Each PE performs one MAC. It multiplies two inputs, adds to a running sum, and forwards data onward. All PEs operate in lockstep under a global clock.
+
+The key advantage over a CPU or GPU is that data moves PE to PE locally each cycle with no repeated reads from slow DRAM. Each weight is read once but reused for many MACs.
+
+### Three Dataflow Strategies
+| Strategy | What stays | What streams | Best for | Example |
+|---|---|---|---|---|
+| Weight Stationary (WS) | Weights in PEs | Activations and partial sums | Layers reused across many inputs | Google TPU v1–v4 |
+| Output Stationary (OS) | Output in PEs | Weights and activations | Small output matrices | ShiDianNao |
+| Row Stationary (RS) | Filter row in PEs | Activations slide, partial sums accumulate | Diverse layer shapes, CNN/FC/LSTM | MIT Eyeriss |
+
+Each dataflow minimizes movement of one data type at the cost of moving others more. The optimal choice depends on layer shape and batch size.
+
+---
+
+## Unit 8: TPU Architecture
+
+The TPU (Tensor Processing Unit) was created by Google specifically for ML. It is only available through Google Cloud.
+
+The main component is the MXU (Matrix Multiply Unit), which is a 256×256 systolic array performing 65,536 MACs per clock cycle using 8-bit operations. The MXU gets its input from the weighted FIFO and unified buffer.
+
+TPU key features: the MXU, TensorCores (each containing a matrix multiply unit plus a vector unit plus a scalar unit), and an Activation Unit with hardwired activation functions.
+
+### GPU vs TPU
+| | GPU | TPU |
+|---|---|---|
+| Origin | Graphics | Created by Google for ML |
+| Architecture | Thousands of smaller parallel cores | Specialized MXUs for tensor operations |
+| Performance focus | Flexibility, broader applicability | Optimized for matrix ops and ML |
+| Availability | NVIDIA, AMD | Proprietary, Google Cloud only |
+| Software | CUDA and various frameworks | TensorFlow |
+| Power efficiency | Less power-efficient, more flexible | More power-efficient |
+
+---
+
+## Unit 9: Transformers
+
+A transformer is a neural network that learns context and meaning by tracking relationships in sequential data, processing all tokens simultaneously rather than one at a time.
+
+Transformers are **explicitly non-recurrent**. The 2017 "Attention Is All You Need" paper was a direct response to RNNs/LSTMs, which process tokens one at a time and pass a hidden state from step to step. That sequential dependency makes RNNs slow to train and bad at long-range dependencies.
+
+The transformer replaces recurrence with **self-attention**, which:
+- Processes all tokens simultaneously in parallel
+- Connects every token directly to every other token in a single operation with no hidden state
+- Uses positional encodings to handle order instead of recurrence
+
+### Self-Attention: Q, K, V
+Each token gets three learned projections:
+- Q (Query) — what the token is looking for
+- K (Key) — what the token offers
+- V (Value) — what the token contributes if selected
+
+Attention queries are executed in parallel via multi-headed attention, computing a matrix of equations across all tokens at once.
+
+### Main Mathematical Operations
+- Matrix multiplication throughout, especially in attention and feed-forward networks
+- Scaled dot-product attention using softmax
+- Layer normalization using mean and variance
+- Residual connections (skip connections) for gradient flow
+- Position-wise feed-forward networks with ReLU
+- Positional encoding via sine and cosine functions (handled by SFUs on GPU)
+
+### Why Transformers Matter for Hardware
+All the core operations reduce to GEMM. The Q, K, V projections are GEMM. The attention score matrix QKᵀ is GEMM. The weighted sum AV is GEMM. This is why the same GPU hardware that accelerates neural net training also accelerates transformer inference.
+
+---
+
+## Unit 10: HW/SW Partitioning
 
 ### Decision Framework
 | Question | Yes → | No → |
@@ -248,37 +363,50 @@ DRAM → [Input Buffer SRAM] → [GEMM Engine] → [Output Buffer] → DRAM
          Controller FSM + Vector Engine
 ```
 
-**PPAC**: Performance · Power · Area · Cost — all four matter in every hardware decision.
-
 ---
 
-## Unit 8: VLSI Design Basics
+## Unit 11: VLSI Design Basics
 
-### Abstraction Levels
-1. **Algorithm** — Python, MATLAB
-2. **RTL** — Verilog, SystemVerilog, VHDL
-3. **Gate** — AND, OR, flip-flops
-4. **Physical** — transistors, silicon layout
+VLSI (Very Large Scale Integration) places billions of transistors on a chip. An ASIC (Application-Specific Integrated Circuit) is a specific type designed for a custom dedicated function. VLSI is the field; ASICs are the end product.
+
+### Abstraction Levels (top to bottom)
+1. Algorithm — Python, MATLAB
+2. RTL (Register Transfer Level) — Verilog, SystemVerilog
+3. Gate — AND, OR, flip-flops (netlist)
+4. Physical — transistors, silicon layout (GDSII)
 
 ### Tool Chain
 | Tool | Type | Role |
 |---|---|---|
-| Yosys / Synopsys | Synthesis | RTL → gates |
-| OpenROAD / Cadence | PnR | gates → layout |
-| Icarus / ModelSim | Simulation | verify behavior |
+| Yosys / Synopsys DC | Synthesis | RTL → gates |
+| OpenROAD / Cadence | Place and Route | gates → layout |
+| Icarus / Verilator | Simulation | verify behavior |
 | cocotb | Testbench | Python-driven verification |
 
+cocotb (Coroutine-based Co-simulation Test Bench) allows writing hardware testbenches in Python using async/await. It interfaces with HDL simulators via VPI/VHPI.
+
 ### Hardware Types
-| Type | Flexible | Perf | Power Eff | Cost |
+| Type | Flexible | Performance | Power Efficiency | Cost |
 |---|---|---|---|---|
-| CPU | ✓✓✓ | low | low | low |
-| GPU | ✓✓ | high | medium | medium |
-| FPGA | ✓ | high | medium | medium |
-| ASIC | ✗ | highest | highest | very high |
+| CPU | high | low | low | low |
+| GPU | medium | high | medium | medium |
+| FPGA | low | high | medium | medium |
+| ASIC | none | highest | highest | very high |
 
 ---
 
-## Unit 9: The Codefest Problems — What Was Tested
+## Unit 12: No Free Lunch Theorem
+
+Formalized by Wolpert and Macready in 1997. When averaged across all possible problems, all optimization algorithms perform equally well. No algorithm consistently outperforms random search.
+
+Implications for hardware:
+- Specialized architectures work well for specific domains but fail in others.
+- Domain knowledge is essential when selecting algorithms and architectures.
+- Claims about architecture superiority must specify the context and problem class.
+
+---
+
+## Unit 13: The Codefest Problems — What Was Tested
 
 ### CF01 — FC Network Workload Accounting
 - Count MACs layer by layer: input_dim × output_dim per layer
@@ -304,13 +432,14 @@ DRAM → [Input Buffer SRAM] → [GEMM Engine] → [Output Buffer] → DRAM
 | FP32 multiply energy | 3.7 pJ |
 | DRAM 64-bit read energy | 640 pJ (170× multiply) |
 | Warp size | 32 threads |
-| H100 ridge point | ~20 FLOP/byte |
 | Naive GEMM AI | 0.25 FLOP/byte (always) |
 | Tiled GEMM AI | N/4 FLOP/byte |
 | Traffic ratio (naive/tiled) | N |
 | ResNet-18 MACs | 1.81 billion |
-| A100 SRAM/SM | 192 KB |
-| H100 SRAM/SM | 228 KB |
+| H100 shared memory per SM | 228 KB |
+| H100 SM count | 132 |
+| TPU MXU size | 256×256 = 65,536 MACs |
+| Register file per SM | 65,536 × 32-bit registers |
 
 ---
 
@@ -322,7 +451,10 @@ DRAM → [Input Buffer SRAM] → [GEMM Engine] → [Output Buffer] → DRAM
 - [ ] Can I classify a kernel as memory/compute-bound given AI and hardware specs?
 - [ ] Do I know what limits occupancy?
 - [ ] Can I explain warp divergence with a code example?
-- [ ] Do I know the 4 CUDA memory spaces and their speeds?
-- [ ] Do I know the 4 VLSI abstraction levels?
+- [ ] Do I know the CUDA memory spaces and their speeds?
+- [ ] Do I know the VLSI abstraction levels?
 - [ ] Do I know PPAC and the accelerator datapath template?
+- [ ] Can I explain what a systolic array is and the three dataflow strategies?
+- [ ] Can I explain how a transformer differs from an RNN?
+- [ ] Can I explain SIMT vs SIMD?
 - [ ] Do I know the trap: higher BW does NOT make a kernel compute-bound?
