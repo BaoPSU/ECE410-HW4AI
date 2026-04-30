@@ -91,6 +91,7 @@ One sentence on how it all fits together or why it matters.
 - **Bullets should flow into each other** — each line continues the thought from the one before, like a spoken explanation broken into lines. Not a list of disconnected facts.
 - **Minimum filler** — skip "I think", "basically", "kind of". Be direct.
 - **Slides only for facts, logic is fine** — only include facts and numbers from the course slides, but logical conclusions drawn from those facts do not need a citation.
+- **No hardware-specific performance numbers** — do not cite specific TFLOPS ratings, GB/s bandwidths, chip die sizes, or any number that only applies to one chip model. No one can memorize those. Explain the principle and the ratio instead. For example, say "halving precision roughly doubles throughput because the same hardware fits twice as many operands" rather than citing exact TFLOPS figures.
 
 ---
 
@@ -131,6 +132,7 @@ One sentence on how it all fits together or why it matters.
 | No roofline interpretation | Name axes, find ridge, classify the kernel, state the fix |
 | Answer with no concrete example | Every answer needs at least one specific example from the course |
 | Adding facts or numbers not in the slides | Flag it or leave it out |
+| Citing specific TFLOPS/GB/s numbers for a chip | Explain the principle and ratio instead ("halving bits doubles throughput") |
 | Using colons or dashes mid-sentence | Rewrite as a full natural sentence |
 | Using an acronym without spelling it out first | Write the full name in parentheses on first use |
 | Answering without checking course_notes.md first | Always check notes before answering |
