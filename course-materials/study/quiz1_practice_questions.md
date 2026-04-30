@@ -273,3 +273,62 @@
 
 **Q60.** If a kernel is theoretically compute-bound (AI >> ridge), will it always run near peak compute?
 > **No.** Other bottlenecks can limit performance: low occupancy, insufficient parallelism, shared memory bank conflicts, or instruction-level bottlenecks. (e.g., tiled T=8 is theoretically compute-bound but achieves only 3.8% of peak due to low occupancy.)
+---
+
+## Section I: Oral Exam Style Q&A
+
+**Q61.** What is the roofline model and how do you use it to optimize a kernel?
+
+The roofline model is a visual framework for predicting the achievable performance of a kernel on a given piece of hardware.
+
+- The Y-axis shows achievable performance in GFLOP/s, and the X-axis shows arithmetic intensity in FLOP/byte, which is how much computation the kernel does per byte it moves from memory.
+- The model has two ceilings that form a roof shape. The horizontal ceiling is peak compute throughput, which no kernel can ever exceed. The diagonal ceiling is peak memory bandwidth, and it rises linearly with arithmetic intensity.
+- Where those two ceilings meet is the **ridge point**, calculated as peak FLOP/s divided by peak bandwidth. This is the ideal place for a kernel to sit because it is the minimum arithmetic intensity needed to fully utilize peak compute without being held back by memory.
+- A kernel to the left of the ridge point is **memory-bound**. The fix is on the software side: tile data into shared memory, improve access patterns, or increase data reuse.
+- A kernel to the right in the flat region is **compute-bound**. The fix shifts to improving occupancy, reducing warp stalls, or making sure Tensor cores are actually being utilized.
+- A kernel below the roofline in either region is inefficient relative to what the hardware can do. A point above the roofline is physically impossible and usually means arithmetic intensity was undercounted.
+
+The roofline tells you not just how fast you are going, but which resource is holding you back, and that is what decides which optimization is even worth trying.
+
+---
+
+**Q62.** What is a systolic array and how does it compute matrix multiplication?
+
+A systolic array is a 2D grid of identical Processing Elements (PEs) that rhythmically compute and pass data to their neighbors, like a pulse — the name comes from an analogy to the human heart.
+
+- Each PE performs one operation: a multiply-accumulate. It multiplies two inputs, adds to a running sum, and forwards the data onward to its neighbor.
+- In weight-stationary dataflow, which is what the Google TPU uses, weights are preloaded into each PE and held fixed for the entire computation.
+- Activations stream in from the left, rippling rightward through the array, and partial sums accumulate downward until final results drain out at the bottom.
+- The key advantage over a CPU or GPU is that each weight is read once but reused for many MACs. CPUs and GPUs re-read registers per operation, but the systolic array chains ALUs together and reuses data locally, which saves energy and eliminates repeated DRAM accesses.
+- The TPU MXU is a 256×256 systolic array, meaning 65,536 MACs fire every clock cycle.
+
+The whole point is near-zero memory traffic with every PE busy every cycle, making GEMM far more efficient than a general-purpose processor.
+
+---
+
+**Q63.** What is SIMT and how does it differ from SIMD?
+
+SIMT, Single Instruction Multiple Threads, is the execution model NVIDIA GPUs use where a single instruction is issued to a warp of 32 threads that all execute it simultaneously on their own private data.
+
+- The warp scheduler issues one instruction per clock and all 32 threads in the warp execute it in lockstep. Each thread has its own registers and its own program counter, so from the programmer's perspective every thread is independent.
+- SIMD, Single Instruction Multiple Data, is the CPU equivalent. A single instruction operates on a fixed-width vector of data. The parallelism unit is a vector lane with a fixed width of 4, 8, or 16 elements.
+- The key difference is that in SIMD all lanes must execute an identical operation with no branching. In SIMT, threads can branch, but divergent paths are serialized with idle threads masked off, which drops throughput by up to 2x per branch level.
+- SIMT also gives each thread its own private register file, 65,536 32-bit registers per SM, while SIMD uses shared vector registers mapped to scalar.
+- For latency tolerance, SIMD relies on out-of-order execution and large caches. SIMT uses zero-overhead warp switching, keeping thousands of active threads in flight to hide memory latency.
+- SIMT was coined by NVIDIA and is not in Flynn's original taxonomy. It extends SIMD with per-thread program counter, stack, and register state.
+
+The bottom line is that SIMT gives you massive parallelism that scales to thousands of SMs with the same code, while SIMD is fixed-width and limited by the ISA.
+
+---
+
+**Q64.** What is shared memory and why does it matter for GPU performance?
+
+Shared memory is a programmer-managed on-chip SRAM scratchpad that all threads within the same thread block can read and write together.
+
+- The problem it solves is that global memory, which lives off-chip in DRAM, has much higher latency and far less bandwidth than anything on the chip itself.
+- Shared memory sits physically inside the SM, so accessing it is extremely fast. On the H100 each SM has about 228 KB available.
+- The key use case is data reuse. If multiple threads in a block all need the same input values, you load that data from global memory once into shared memory, and then every thread reads from there instead of hammering DRAM repeatedly.
+- A classic example is tiled GEMM. Without shared memory, matrix elements get loaded from DRAM N times each. With shared memory, you load a tile once, do all the math on it, then move to the next tile, which raises arithmetic intensity from O(1) to O(N) FLOP/byte.
+- Shared memory is per-SM, so thread blocks cannot share data across SMs. All cross-block communication has to go through slow global memory.
+
+The whole point is that the gap between on-chip and off-chip memory is so large that the programmer needs direct control over what stays on chip, and shared memory is how the GPU gives you that control.
