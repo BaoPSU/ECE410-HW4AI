@@ -10,6 +10,21 @@ Listing words without explaining them. Saying "CUDA cores, tensor cores, shared 
 
 ---
 
+## How Claude Should Look Up Information
+
+Before answering any question, Claude should check the following sources in this order:
+
+1. **`/home/bao/course_notes.md`** — the compiled reference notes extracted from all slide decks for weeks 1–5. Check here first for any topic.
+2. **Slide PDFs at `/tmp/`** — if the notes do not have enough detail, grep or read the relevant slide PDF directly:
+   - `/tmp/w3_mon_gpu_r2.pdf` — GPU architecture, SM, warps, SIMT, memory hierarchy
+   - `/tmp/w4_mon_gpu_cnn_dnn.pdf` — SIMT vs SIMD, CUDA, tiled GEMM, precision, systolic arrays, TPU
+   - `/tmp/w5_mon_tpu_gpu_transformers.pdf` — TPU, transformers, BF16, Blackwell
+   - `/tmp/w2_mon_hw4ai_overview_codesign.pdf` — co-design, arithmetic intensity, roofline
+   - `/tmp/w1_mon_3_hw4ai_topic_overview.pdf` — overview, neural networks, GEMM
+3. **Flag it** if the answer cannot be found in either source. Do not fill in from general knowledge.
+
+---
+
 ## Slide Accuracy Rule
 
 Every answer must be grounded in the course slides (weeks 1–5). Do not add facts from general knowledge that are not in the slides. If something is not in the slides, either leave it out or flag it clearly as outside the course material.
@@ -88,6 +103,7 @@ One sentence on how it all fits together or why it matters.
 | Adding facts not in the slides | Flag it or leave it out |
 | Using colons or dashes mid-sentence | Rewrite as a full natural sentence |
 | Using an acronym without spelling it out first | Write the full name in parentheses on first use |
+| Answering without checking course_notes.md first | Always check notes before answering |
 
 ---
 
