@@ -279,56 +279,59 @@
 
 **Q61.** What is the roofline model and how do you use it to optimize a kernel?
 
-The roofline model is a visual framework for predicting the achievable performance of a kernel on a given piece of hardware.
+The roofline model is a visual performance framework that tells you the maximum achievable throughput for a kernel on a specific piece of hardware, and which hardware resource is actually holding it back.
 
-- The Y-axis shows achievable performance in GFLOP/s, and the X-axis shows arithmetic intensity in FLOP/byte, which is how much computation the kernel does per byte it moves from memory.
-- The model has two ceilings that form a roof shape. The horizontal ceiling is peak compute throughput, which no kernel can ever exceed. The diagonal ceiling is peak memory bandwidth, and it rises linearly with arithmetic intensity.
-- Where those two ceilings meet is the **ridge point**, calculated as peak FLOP/s divided by peak bandwidth. This is the ideal place for a kernel to sit because it is the minimum arithmetic intensity needed to fully utilize peak compute without being held back by memory.
-- A kernel to the left of the ridge point is **memory-bound**. The fix is on the software side: tile data into shared memory, improve access patterns, or increase data reuse.
-- A kernel to the right in the flat region is **compute-bound**. The fix shifts to improving occupancy, reducing warp stalls, or making sure Tensor cores are actually being utilized.
-- A kernel below the roofline in either region is inefficient relative to what the hardware can do. A point above the roofline is physically impossible and usually means arithmetic intensity was undercounted.
+- The X-axis is arithmetic intensity, measured in FLOP per byte, which is how much computation the kernel does per byte it reads from memory. The Y-axis is attainable performance in GFLOP/s.
+- There are two ceilings that form the roof shape. The diagonal ceiling rising from left to right is peak memory bandwidth. The flat horizontal ceiling at the top is peak compute throughput.
+- Where the two ceilings meet is the ridge point, calculated as peak FLOP/s divided by peak bandwidth. This is the minimum arithmetic intensity needed to fully saturate compute without being held back by memory.
+- A kernel to the left of the ridge point is memory-bound. Its attainable performance is arithmetic intensity times bandwidth. The fix is reducing DRAM traffic through tiling, data reuse, or operation fusion.
+- A kernel to the right is compute-bound. Its attainable performance is capped at peak compute. The fix shifts to improving occupancy and reducing warp stalls.
 
-The roofline tells you not just how fast you are going, but which resource is holding you back, and that is what decides which optimization is even worth trying.
+A concrete example: on hardware with peak compute of 10 TFLOPS and bandwidth of 320 GB/s, the ridge point is 31.25 FLOP per byte. Naive GEMM has arithmetic intensity of 0.25, which is far to the left of the ridge point, so it is completely memory-bound and only achieves about 80 GFLOP/s out of 10,000 possible. Switching to tiled GEMM raises arithmetic intensity to N/4. At N=128, that is 32 FLOP per byte, which crosses the ridge point and the kernel becomes compute-bound, unlocking full peak compute from the same hardware with no hardware changes at all.
+
+The reason the roofline is so powerful is that it tells you not just how fast a kernel is running, but which resource is the bottleneck, and that is what decides which optimization is even worth trying.
 
 ---
 
 **Q62.** What is a systolic array and how does it compute matrix multiplication?
 
-A systolic array is a 2D grid of identical Processing Elements (PEs) that rhythmically compute and pass data to their neighbors, like a pulse — the name comes from an analogy to the human heart.
+A systolic array is a 2D grid of identical Processing Elements (PEs) that each perform one Multiply-Accumulate (MAC) and pass data rhythmically to their neighbors, similar to a heartbeat pulse moving through the grid.
 
-- Each PE performs one operation: a multiply-accumulate. It multiplies two inputs, adds to a running sum, and forwards the data onward to its neighbor.
-- In weight-stationary dataflow, which is what the Google TPU uses, weights are preloaded into each PE and held fixed for the entire computation.
-- Activations stream in from the left, rippling rightward through the array, and partial sums accumulate downward until final results drain out at the bottom.
-- The key advantage over a CPU or GPU is that each weight is read once but reused for many MACs. CPUs and GPUs re-read registers per operation, but the systolic array chains ALUs together and reuses data locally, which saves energy and eliminates repeated DRAM accesses.
-- The TPU MXU is a 256×256 systolic array, meaning 65,536 MACs fire every clock cycle.
+- Each PE multiplies two values, adds the result to a running accumulator, and passes one or both values to adjacent PEs in the next clock cycle.
+- In weight-stationary dataflow, which is what the Google TPU uses, weights are preloaded into each PE once and held fixed for the entire computation. Activations flow in from the left, move rightward through the array, and partial sums accumulate downward until final results drain out at the bottom.
+- The key advantage over a general-purpose processor is that each weight is loaded once and reused for many MACs without ever going back to DRAM. On a CPU or GPU you re-fetch values from registers or cache for every operation, but the systolic array chains PEs together so data flows locally between neighbors with no repeated memory access.
 
-The whole point is near-zero memory traffic with every PE busy every cycle, making GEMM far more efficient than a general-purpose processor.
+The concrete example from the course is the Google TPU Matrix Multiply Unit (MXU), which is a 256 by 256 systolic array containing 65,536 PEs. When multiplying two 256 by 256 matrices, all 65,536 PEs fire simultaneously every clock cycle, and no weight gets loaded from DRAM more than once for the entire operation. The slides show that this design gives the TPU 83 times better performance per watt than a CPU on inference, and that advantage comes directly from the systolic structure eliminating memory traffic.
+
+The whole point of the design is near-zero memory traffic per MAC with every PE busy every cycle, which makes GEMM dramatically more efficient than anything you can do on hardware built for general-purpose workloads.
 
 ---
 
 **Q63.** What is SIMT and how does it differ from SIMD?
 
-SIMT, Single Instruction Multiple Threads, is the execution model NVIDIA GPUs use where a single instruction is issued to a warp of 32 threads that all execute it simultaneously on their own private data.
+SIMT, Single Instruction Multiple Threads, is the execution model NVIDIA GPUs use where a single instruction is broadcast to a warp of 32 threads, and all 32 execute it simultaneously on their own private register state and their own data.
 
-- The warp scheduler issues one instruction per clock and all 32 threads in the warp execute it in lockstep. Each thread has its own registers and its own program counter, so from the programmer's perspective every thread is independent.
-- SIMD, Single Instruction Multiple Data, is the CPU equivalent. A single instruction operates on a fixed-width vector of data. The parallelism unit is a vector lane with a fixed width of 4, 8, or 16 elements.
-- The key difference is that in SIMD all lanes must execute an identical operation with no branching. In SIMT, threads can branch, but divergent paths are serialized with idle threads masked off, which drops throughput by up to 2x per branch level.
-- SIMT also gives each thread its own private register file, 65,536 32-bit registers per SM, while SIMD uses shared vector registers mapped to scalar.
-- For latency tolerance, SIMD relies on out-of-order execution and large caches. SIMT uses zero-overhead warp switching, keeping thousands of active threads in flight to hide memory latency.
-- SIMT was coined by NVIDIA and is not in Flynn's original taxonomy. It extends SIMD with per-thread program counter, stack, and register state.
+- A warp is the basic scheduling unit: 32 threads that run in lockstep. The warp scheduler issues one instruction per clock and all 32 threads execute it at the same time on different data. Each thread has its own program counter and its own registers, so from the programmer's perspective every thread is independent.
+- SIMD, Single Instruction Multiple Data, is the CPU equivalent. A single instruction operates on a fixed-width vector of elements, such as 4, 8, or 16 lanes depending on the ISA, and all lanes do exactly the same operation with no independent state per lane.
+- The key difference is what happens when code branches. In SIMD all lanes are forced to execute identically. In SIMT threads can branch independently, but when threads within the same warp take different paths, the hardware serializes both paths and masks off whichever side is not active. This is warp divergence, and it costs up to 2x throughput per branch level.
+- For handling memory stalls, SIMD relies on out-of-order execution and large caches. SIMT uses zero-overhead warp switching: when one warp stalls waiting on a memory load, the scheduler instantly swaps in another ready warp and keeps the execution units busy without any idle cycles.
+- SIMT was coined by NVIDIA and is not part of Flynn's original taxonomy. It extends SIMD by giving each thread its own program counter and register file.
 
-The bottom line is that SIMT gives you massive parallelism that scales to thousands of SMs with the same code, while SIMD is fixed-width and limited by the ISA.
+A concrete example is matrix multiply on a GPU. All 32 threads in a warp each compute one output element of the same matrix, running the identical multiply-add instruction on different positions in the matrix. There is no branching, no divergence, and SIMT runs at full throughput. Now consider adding ReLU, which sets negative values to zero. That conditional causes threads with positive results and threads with negative results to diverge inside the same warp, the hardware runs the positive side then the negative side separately with half the threads idle each time, and throughput drops in half.
+
+The bottom line is that SIMT gives you massive parallelism that scales to thousands of threads with the same code, while SIMD is fixed-width and limited to whatever vector width the ISA defines.
 
 ---
 
 **Q64.** What is shared memory and why does it matter for GPU performance?
 
-Shared memory is a programmer-managed on-chip SRAM scratchpad that all threads within the same thread block can read and write together.
+Shared memory is a programmer-managed on-chip scratchpad inside each Streaming Multiprocessor (SM) that all threads within the same thread block can read and write at very low latency.
 
-- The problem it solves is that global memory, which lives off-chip in DRAM, has much higher latency and far less bandwidth than anything on the chip itself.
-- Shared memory sits physically inside the SM, so accessing it is extremely fast. On the H100 each SM has about 228 KB available.
-- The key use case is data reuse. If multiple threads in a block all need the same input values, you load that data from global memory once into shared memory, and then every thread reads from there instead of hammering DRAM repeatedly.
-- A classic example is tiled GEMM. Without shared memory, matrix elements get loaded from DRAM N times each. With shared memory, you load a tile once, do all the math on it, then move to the next tile, which raises arithmetic intensity from O(1) to O(N) FLOP/byte.
-- Shared memory is per-SM, so thread blocks cannot share data across SMs. All cross-block communication has to go through slow global memory.
+- The problem it solves is that global memory lives off-chip in DRAM, which has latency hundreds of clock cycles long and finite bandwidth shared across the whole chip. When threads repeatedly fetch from DRAM, they spend most of their time waiting, not computing.
+- Shared memory sits physically on the SM, so it operates at far lower latency and much higher per-SM bandwidth than DRAM. On the H100 each SM has about 228 KB of shared memory available.
+- The key use case is data reuse across threads. If multiple threads in a block all need the same input values, you load that data once from DRAM into shared memory as a group, and then every thread reads from the fast on-chip copy rather than each thread going back to DRAM independently.
+- Shared memory is per-block, so threads in different blocks running on different SMs cannot share data through it. Cross-block communication goes back through slow global memory, which is one of the core architectural constraints that shapes how GPU kernels are written.
 
-The whole point is that the gap between on-chip and off-chip memory is so large that the programmer needs direct control over what stays on chip, and shared memory is how the GPU gives you that control.
+The clearest example is tiled GEMM. In naive GEMM every element of matrices A and B gets loaded from DRAM N times over, once for every dot product it participates in, giving arithmetic intensity of just 0.25 FLOP per byte. With tiling, each thread block loads one tile into shared memory and all threads compute their partial results against that local copy. Each element is read from DRAM exactly once, which drops total traffic from 2N cubed bytes down to 2N squared bytes. For N=64, that is a 64 times reduction in DRAM traffic and raises arithmetic intensity from 0.25 up to 16 FLOP per byte, which is the difference between a completely memory-starved kernel and one approaching the ridge point.
+
+The on-chip versus off-chip memory gap is so large that direct programmer control over what stays on chip is essential for performance, and shared memory is how the GPU gives you that control.
