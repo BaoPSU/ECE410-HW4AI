@@ -27,7 +27,7 @@ Before answering any question, Claude should check the following sources in this
 
 ## Slide Accuracy Rule
 
-Every answer must be grounded in the course slides (weeks 1–5). Do not add facts from general knowledge that are not in the slides. If something is not in the slides, either leave it out or flag it clearly as outside the course material.
+Every answer must be grounded in the course slides (weeks 1–5). Do not add new facts from general knowledge. However, simple logical conclusions that follow directly from slide-defined concepts are fine without needing a citation. For example, if the slides define the ridge point as where the two ceilings meet, it follows logically that a kernel sitting at the ridge point is optimal — that reasoning does not need a slide reference. The rule is no new facts or numbers, but applying logic to what the slides teach is expected and encouraged.
 
 ---
 
@@ -63,7 +63,7 @@ One sentence on how it all fits together or why it matters.
 - **Bullet points over paragraphs** — easier to follow out loud and easier to grade.
 - **Bullets should flow into each other** — each line continues the thought from the one before, like a spoken explanation broken into lines. Not a list of disconnected facts.
 - **Minimum filler** — skip "I think", "basically", "kind of". Be direct.
-- **Slides only** — only include content covered in the course slides. Do not add outside knowledge.
+- **Slides only for facts, logic is fine** — only include facts and numbers from the course slides, but logical conclusions drawn from those facts do not need a citation.
 
 ---
 
@@ -100,7 +100,7 @@ One sentence on how it all fits together or why it matters.
 | "shared RAM" | "shared memory, an on-chip SRAM scratchpad shared within a thread block" |
 | "design algorithm and hardware together" (stop there) | Add WHY + example |
 | No roofline interpretation | Name axes, find ridge, classify kernel, state fix |
-| Adding facts not in the slides | Flag it or leave it out |
+| Adding facts or numbers not in the slides | Flag it or leave it out |
 | Using colons or dashes mid-sentence | Rewrite as a full natural sentence |
 | Using an acronym without spelling it out first | Write the full name in parentheses on first use |
 | Answering without checking course_notes.md first | Always check notes before answering |
