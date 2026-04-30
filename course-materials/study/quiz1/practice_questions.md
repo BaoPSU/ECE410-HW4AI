@@ -349,3 +349,14 @@ A warp is a group of 32 threads that execute the same instruction simultaneously
 A concrete example: imagine a GEMM kernel where every warp loads a tile from DRAM. The first warp fires off its load and stalls. The scheduler instantly switches to the second warp, which fires its load and stalls. By the time the scheduler cycles back to the first warp, the data has arrived and it can continue computing. Without this switching, every load would freeze the whole SM and most of the execution units would sit idle waiting on memory.
 
 The whole design is built around one idea: instead of making memory faster or adding prediction logic like a CPU does, the GPU keeps thousands of threads in flight so the math units never have to wait.
+---
+
+**Q67.** Why does tiled GEMM perform so much better than naive GEMM?
+
+The problem with naive GEMM is that every thread independently goes to DRAM every single time it needs a value from the input matrices. The same element gets loaded over and over again for every dot product it shows up in, so for a large matrix you end up with a huge amount of redundant memory traffic. DRAM is slow and far from the chip, so the kernel just sits there waiting on memory most of the time instead of doing useful math.
+
+Tiled GEMM fixes this by using shared memory. Instead of every thread going to DRAM on its own, the whole thread block cooperates to load one tile into shared memory first, and then everyone does their math against that on-chip copy. Each element only makes the trip from DRAM once. Shared memory is right there on the chip so it is much faster, and because you reuse it many times before moving to the next tile, you are doing way more work per byte you actually move.
+
+The result is that arithmetic intensity goes way up. You went from loading the same data over and over to loading it once and squeezing as much math out of it as possible. That is what moves the kernel from being stuck on the memory-bound side of the roofline toward the ridge point.
+
+The one catch is tile size. Bigger tiles mean more reuse and less DRAM traffic, but they eat up more shared memory, which limits how many thread blocks fit on an SM at once. Fewer blocks means fewer warps, which means less ability to hide latency. So tile size is a balancing act between reuse and occupancy.
