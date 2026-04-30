@@ -1,7 +1,12 @@
 # Answer Method for Practice & Oral Exams
 
 Based on quiz feedback (scored 2.3/10 on first attempt) and refined on 2026-04-29.
-Target: 8/10 to pass. Students typically score 5-6, so 8 is above average and is the realistic goal. 10/10 is the ideal — same structure, just a more specific or insightful concrete example.
+
+**Target: 8/10.** Students typically score 5-6, so 8 is above average and is the realistic goal. 10/10 is the ideal — same structure, just a more specific or insightful concrete example.
+
+**Format: interview-style oral exam.** These are not recall questions. They are designed to see if you can explain a concept the way you would in a technical interview — define it, explain the moving parts, ground it with an example, and close with the big picture.
+
+**Time: aim for 2-3 minutes per answer.** The professor noted that the average student answered in under 1 minute. Rushing is the number one reason answers score 5-6. If you have done all 4 steps properly, you will naturally fill 2 minutes. Do not click next until you have said the concrete example out loud.
 
 ---
 
@@ -42,7 +47,7 @@ Every answer must be grounded in the course slides (weeks 1–5). Do not add new
 
 ---
 
-## What a 10/10 Answer Looks Like
+## What a Good Answer Looks Like (8/10+)
 
 A full-credit answer has four things:
 
@@ -75,7 +80,7 @@ One specific example from the course that grounds the answer. This is the piece 
 ### 4. Close with the big picture
 One sentence on how it all fits together or why it matters.
 
-> "The whole system is designed around one idea — always keep the math units busy by switching between warps instead of ever waiting on slow memory."
+> "The whole system is designed around one idea. Always keep the math units busy by switching between warps instead of ever waiting on slow memory."
 
 ---
 
@@ -85,7 +90,6 @@ One sentence on how it all fits together or why it matters.
 - **Use the technical vocabulary** — SIMT, warp, DRAM, arithmetic intensity, FLOP/byte, ridge point, MAC, etc. These words signal you know the material.
 - **Spell out acronyms on first use** — write the full name in parentheses the first time you use an acronym. For example, SIMT (Single Instruction Multiple Threads), SM (Streaming Multiprocessor), DRAM (Dynamic Random Access Memory), MAC (Multiply Accumulate). After that, use the acronym freely.
 - **Use () to gloss jargon terms** — when you use a technical term that is not self-explanatory, add a short plain-English translation in parentheses right after it. Keep it to one short phrase. For example: "zero-overhead context switching (meaning the switch costs nothing — no registers saved or loaded)" or "occupancy (the ratio of active warps to the maximum the SM can hold)". This lets you keep the technical vocabulary while making the meaning immediately clear.
-- **No parentheses for anything else** — fold extra detail into the sentence instead. Parentheses are only for spelling out acronyms.
 - **No dashes mid-sentence** — write complete sentences that flow naturally when spoken aloud. End the sentence and start a new one instead.
 - **No colons mid-sentence** — same rule as dashes. Write it out as a full natural sentence.
 - **Bullet points over paragraphs** — easier to follow out loud and easier to grade.
@@ -156,4 +160,4 @@ One sentence on how it all fits together or why it matters.
 - A concrete example of this is tiled GEMM, where the tile is loaded into shared memory once and every thread in the block reads from there instead of going back to DRAM, which is what pushes arithmetic intensity from 0.25 up to N/4 FLOP/byte.
 - **Load/store units** handle moving data between the SM and the rest of the memory hierarchy, and **SFUs (Special Function Units)** take care of transcendental math like sin, cos, and exp.
 - Finally, an **L1 cache** sits physically unified with shared memory but is managed automatically by the hardware rather than the programmer.
-- The whole design comes down to one idea — keep the math units fed and busy at all times, using warp switching to cover for the inevitable memory stalls.
+- The whole design comes down to one idea. Keep the math units fed and busy at all times, using warp switching to cover for the inevitable memory stalls.
