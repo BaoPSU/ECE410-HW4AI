@@ -13,7 +13,7 @@
 
 ## 1a. HW/SW Co-design — Deep Dive
 
-**Definition**: Design hardware and algorithm/software **simultaneously and interdependently** — not sequentially.
+**Definition** (from slides): "The practice of taking the **best from software** design and the **best from hardware** design to solve design problems — cooperating HW and SW components in a **single design effort**." Don't design them sequentially; design them together.
 
 **Why it matters (motivations):**
 1. **Data movement dominates energy**: DRAM read = 640 pJ, FP32 multiply = 3.7 pJ → **170× more expensive** to move data than compute. An algorithm oblivious to this wastes energy regardless of hardware quality.
@@ -64,6 +64,12 @@ AI > I*  → compute-bound → fix: more arithmetic units / better ILP
 ```
 
 **Critical insight**: AI is a property of the **algorithm**, not the hardware. Hardware only moves the ridge point. You cannot make a kernel compute-bound by adding memory bandwidth — you can only lower the ridge point.
+
+**Multi-GPU roofline insight** (from lecture slides):
+- Ridge points **move rightward** across GPU generations (P100 → V100 → A100 → H100 → B200)
+- Compute has grown faster than bandwidth → newer GPUs need **higher AI** to stay compute-bound
+- H100 ridge ≈ 20 FLOP/byte (FP32); B200 ridge is ~280+ FLOP/byte
+- NVIDIA's answer to the memory wall: **lower precision (FP4)** — halving data size doubles effective bandwidth and doubles AI
 
 **Example (CF02: Peak = 10 TFLOP/s, BW = 320 GB/s, I* = 31.25 FLOP/byte):**
 | Kernel | AI | vs I* | Bound | Ceiling |
@@ -122,9 +128,9 @@ AI > I*  → compute-bound → fix: more arithmetic units / better ILP
 | Component | Role |
 |---|---|
 | **CUDA cores** | Scalar arithmetic — FP32/INT32 ALU operations (one per clock per core) |
-| **Tensor cores** | Hardware matrix-multiply units — one 4×4×4 FMA per cycle; built for GEMM in deep learning |
-| **Warp schedulers** (×4) | Each SM has 4 schedulers. A warp = 32 threads running lockstep (SIMT). Schedulers switch to a ready warp every cycle to **hide memory latency** |
-| **Register file** | ~16K 32-bit registers per SM — fastest storage, local to each thread |
+| **Tensor cores** | Hardware MMA units — execute D = A×B + C on a 4×4 matrix per clock (FP16 in → FP32 accumulate); built for GEMM in deep learning |
+| **Warp schedulers** (×4) | SM has 4 processing blocks, each with 1 warp scheduler. A warp = 32 threads running lockstep (SIMT). Switch to a ready warp every cycle to **hide memory latency** |
+| **Register file** | **65,536 × 32-bit registers per SM** (16,384 per processing block × 4 blocks) — fastest storage, local to each thread |
 | **Shared memory / L1 SRAM** | On-chip SRAM shared by all threads in a block (~192–228 KB). Programmer-managed scratchpad (~1 TB/s). Key for data reuse |
 | **Load/Store units** | Handle memory traffic between SM and the cache/DRAM hierarchy |
 | **Special Function Units (SFUs)** | Hardware units for transcendentals: sin, cos, exp, reciprocal |
@@ -234,6 +240,17 @@ kernel<<<M, T>>>(args)   // M = blocks, T = threads/block
 | Compute-bound at target tile size | Build fixed datapath (GEMM engine, conv) |
 | Memory-bound | Restructure data access (tiling, reuse) |
 | Irregular access / data-dependent branches | Keep in software (CPU) |
+
+### Full Design Trade-off List (from slides — not just PPAC)
+**PPAC** (Performance, Power, Area, Cost) is the short version. The full list:
+- **Performance** — throughput, latency
+- **Flexibility** — general-purpose vs application-specific
+- **Energy efficiency** — FLOP/Joule
+- **Power density** — avoid burning the chip; cooling cost
+- **Design complexity** — harder to build = longer schedule
+- **Design cost** — NRE (non-recurring engineering) for ASICs
+- **Scalability** — does it scale to larger models/data?
+- **Shrinking design schedules** — time-to-market pressure
 
 ---
 
