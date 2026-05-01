@@ -79,19 +79,13 @@
 
 **Q22b.** [ORAL EXAM STYLE] You are shown a roofline plot. Walk me through how you interpret it.
 
-> So the roofline model is a plot that tells me the maximum performance a kernel can achieve on a given piece of hardware, and which resource is actually holding it back.
+> The x-axis is arithmetic intensity, which is how many FLOPs the kernel does per byte it pulls from DRAM, and the y-axis is how much performance you can actually get out of the hardware. There are two ceilings that form the roof shape. The diagonal one is your memory bandwidth limit, so if you're not doing enough math per byte, that's your wall. The flat one at the top is peak compute, and nothing gets past that no matter what.
 >
-> The x-axis is arithmetic intensity — that's FLOPs divided by bytes moved from memory, so it tells me how much computation the kernel does per byte it pulls in. The y-axis is attainable performance in GFLOP/s.
+> Where they meet is the ridge point, which is just peak compute divided by peak bandwidth. Any kernel with an arithmetic intensity above that is compute-bound, anything below is memory-bound. If you're memory-bound, attainable performance is AI times bandwidth. If you're compute-bound, you're capped at peak compute.
 >
-> There are two ceilings that form the roof shape. The diagonal line rising from left to right is the memory bandwidth ceiling — if I'm not doing enough math per byte, that's my limit. The flat horizontal line at the top is peak compute — no kernel can exceed that regardless of how efficient it is.
+> The important thing to remember is that arithmetic intensity is a property of the algorithm, not the hardware. You can't change it by buying a faster chip. Hardware only shifts where the ridge point lands.
 >
-> Where those two meet is the ridge point, which I get by dividing peak compute by peak bandwidth. That number is the minimum arithmetic intensity I need to be compute-bound rather than memory-bound.
->
-> If a kernel sits left of the ridge point, it's memory-bound. More CUDA cores won't help — I need to reduce DRAM traffic through tiling or data reuse. If it sits right of the ridge point, it's compute-bound, and reducing memory traffic won't do anything.
->
-> The key insight is that arithmetic intensity is a property of the algorithm, not the hardware. Hardware only moves the ridge point. I can't make a kernel compute-bound by adding memory bandwidth — I can only lower the threshold it needs to clear.
->
-> A good example from my K-Means project — the distance kernel has an arithmetic intensity of 1.68 FLOP/byte against a ridge point of 18.23, so it's deeply memory-bound. The fix was moving it to a near-memory PIM chiplet with much higher bandwidth, which effectively lowers the ridge point enough that the same kernel becomes compute-bound.
+> From my K-Means project, the distance kernel had an AI of 1.68 FLOP/byte against a ridge point of 18.23, so it was deeply memory-bound. The fix was moving it to a near-memory PIM chiplet, which pushed the ridge point down until the kernel cleared it.
 
 ---
 
@@ -133,7 +127,11 @@
 
 **Q30b.** What does an SM do when a warp is stalled waiting for memory?
 
-> When a warp issues a DRAM load, it gets marked as not ready and the warp scheduler immediately switches to another warp that already has its data. That's the key — every active warp's registers are permanently live in the register file, so switching costs nothing. The GPU keeps the CUDA cores busy instead of freezing and waiting. That's why occupancy matters so much: the more warps I have in flight, the more the scheduler has to choose from when one stalls.
+> So when a warp issues a load from DRAM, it gets marked as not ready and the warp scheduler immediately switches to another warp that already has its data and can keep going. That's zero-overhead context switching — and the reason it costs nothing is that every active warp's registers are permanently live in the register file the whole time, so the scheduler just points at a different warp on the next clock cycle.
+>
+> That's completely different from a CPU where switching threads means saving registers out to memory and loading the next thread's state back in. The GPU never has to do any of that — it just keeps the CUDA cores busy instead of freezing and waiting.
+>
+> And that's actually why occupancy matters — the more active warps you have, the more options the scheduler has when one stalls. If occupancy is low, the scheduler runs out of ready warps and the execution units just sit idle waiting on memory.
 
 **Q31.** What does `kernel<<<M, T>>>(args)` mean?
 > Launch kernel with **M thread blocks**, each containing **T threads**. Total threads = M × T.
@@ -172,19 +170,23 @@
 
 **Q40.** What is HW/SW co-design? Define it, explain WHY it matters, and give examples.
 
-> So HW/SW co-design is the idea that you shouldn't design your hardware first and then figure out the software later — you do both at the same time, because each one shapes the other.
+> So HW/SW co-design is the idea that you design your hardware and software at the same time, because each one shapes the other. You don't build the chip first and figure out the algorithm later, or write the algorithm first and hope the hardware can handle it.
 >
-> The reason that matters is if I design a chip without knowing what algorithm is running on it, I'm going to get the memory hierarchy wrong, the datapath width wrong, the amount of on-chip SRAM wrong. And if I write an algorithm without knowing what the hardware looks like, I'm going to be bottlenecked by things I didn't have to be bottlenecked by.
+> The reason that matters is if I design a chip without knowing what algorithm is running on it, I'm going to get things wrong — the memory hierarchy, the datapath width, how much on-chip SRAM I need. And if I write the algorithm without knowing what the hardware looks like, I'm going to be bottlenecked by things I didn't have to be bottlenecked by.
 >
-> If we look at it from a memory perspective, that's really where co-design pays off the most. Moving data off-chip is way more expensive than doing actual computation — energy-wise, latency-wise, bandwidth-wise. So the algorithm needs to be structured to minimize those trips, and the hardware needs to be sized to support that.
+> Where it pays off the most is memory. Moving data off-chip is way more expensive than doing actual computation — energy-wise, latency-wise, bandwidth-wise. So the algorithm needs to be structured to minimize those trips, and the hardware needs to be sized to actually support that.
 >
-> A good example from my K-Means project — the distance kernel was memory-bound at an arithmetic intensity of 1.68 FLOP/byte against a ridge point of 18.23. The fix wasn't to write better software or buy a faster chip independently. The fix was to co-design: offload the kernel to a near-memory PIM chiplet where the bandwidth clears the ridge point. That's co-design in practice.
+> From my K-Means project — the distance kernel was memory-bound at an arithmetic intensity of 1.68 FLOP/byte against a ridge point of 18.23. The fix wasn't better software or a faster chip in isolation. The fix was co-design: offload the kernel to a near-memory PIM chiplet where the bandwidth clears the ridge point. That's co-design in practice.
 >
-> The main takeaway is the best systems are the ones where the hardware and the algorithm were designed around each other from the start.
+> The best systems are the ones where the hardware and the algorithm were designed around each other from the start.
 
 **Q40b.** Why does co-design achieve better perf/watt than CPU for deep learning?
 
-> CPUs are built for general-purpose workloads — branch prediction, out-of-order execution, large caches. If we look at it from a DNN workload perspective, all of that logic is just wasted area and power, because DNN workloads are regular, data-parallel, and dominated by GEMM. Co-designed hardware like the TPU or GPU Tensor cores strips all that out and dedicates the silicon directly to matrix multiply. You're spending every watt on work that actually matters for the algorithm.
+> CPUs are built for general-purpose workloads, branch prediction, out-of-order execution, big caches. And if you look at a Deep Neural Network (DNN) workload, all of that logic is just wasted area and wasted power, because DNN workloads are regular, data-parallel, and dominated by GEMM. There's no branching to predict, no irregular memory access. It's just matrix multiply over and over.
+>
+> Co-designed hardware like the TPU or GPU Tensor cores strips all that general-purpose stuff out and dedicates the silicon directly to matrix multiply. Every transistor is doing work that actually matters for the algorithm. You're not burning power on prediction logic that a neural network doesn't need.
+>
+> The result is you get dramatically more useful compute per watt because you're not paying for hardware that was never going to help you in the first place.
 
 **Q41.** When should you accelerate a kernel in hardware?
 > When it consumes **>10% of runtime** (Amdahl's law) AND is **compute-bound at the target tile size** with regular, predictable memory access patterns.
@@ -269,84 +271,78 @@
 
 **Q61.** What is the roofline model and how do you use it to optimize a kernel?
 
-The roofline model is a visual performance framework that tells you the maximum achievable throughput for a kernel on a specific piece of hardware, and which hardware resource is actually holding it back.
-
-- The X-axis is arithmetic intensity, measured in FLOP per byte, which is how much computation the kernel does per byte it reads from memory. The Y-axis is attainable performance in GFLOP/s.
-- There are two ceilings that form the roof shape. The diagonal ceiling rising from left to right is peak memory bandwidth. The flat horizontal ceiling at the top is peak compute throughput.
-- Where the two ceilings meet is the ridge point, calculated as peak FLOP/s divided by peak bandwidth. This is the minimum arithmetic intensity needed to fully saturate compute without being held back by memory.
-- A kernel to the left of the ridge point is memory-bound. Its attainable performance is arithmetic intensity times bandwidth. The fix is reducing DRAM traffic through tiling, data reuse, or operation fusion.
-- A kernel to the right is compute-bound. Its attainable performance is capped at peak compute. The fix shifts to improving occupancy and reducing warp stalls.
-
-A concrete example: on hardware with peak compute of 10 TFLOPS and bandwidth of 320 GB/s, the ridge point is 31.25 FLOP per byte. Naive GEMM has arithmetic intensity of 0.25, which is far to the left of the ridge point, so it is completely memory-bound and only achieves about 80 GFLOP/s out of 10,000 possible. Switching to tiled GEMM raises arithmetic intensity to N/4. At N=128, that is 32 FLOP per byte, which crosses the ridge point and the kernel becomes compute-bound, unlocking full peak compute from the same hardware with no hardware changes at all.
-
-The reason the roofline is so powerful is that it tells you not just how fast a kernel is running, but which resource is the bottleneck, and that is what decides which optimization is even worth trying.
+> So the roofline model is a performance tool that tells you the maximum performance a kernel can achieve on specific hardware, and which resource is actually the bottleneck.
+>
+> The x-axis is arithmetic intensity, which is FLOPs divided by bytes moved from DRAM, and the y-axis is attainable performance in GFLOP/s. There are two ceilings. The diagonal one is your memory bandwidth limit and the flat one at the top is peak compute. Where they meet is the ridge point, which is peak compute divided by peak bandwidth. That's the minimum arithmetic intensity you need to be compute-bound.
+>
+> The important thing to understand is that arithmetic intensity is a property of the algorithm, not the hardware. You can't change it by buying a faster chip. Hardware only moves the ridge point — higher bandwidth lowers it, higher peak compute raises it.
+>
+> If a kernel is left of the ridge point it's memory-bound, and attainable performance is AI times bandwidth. The fix is reducing DRAM traffic through tiling or data reuse. If it's right of the ridge point it's compute-bound and capped at peak compute, so the fix shifts to improving occupancy and reducing warp stalls.
+>
+> What makes the roofline powerful is it tells you not just how fast a kernel is running, but which resource is the bottleneck, and that decides which optimization is even worth trying.
+>
+> From my K-Means project, the distance kernel had an AI of 1.68 FLOP/byte against a ridge point of 18.23, so it was deeply memory-bound. The fix was offloading to a near-memory PIM chiplet, which raised the effective bandwidth enough to push the kernel past the ridge point.
 
 ---
 
 **Q62.** What is a systolic array and how does it compute matrix multiplication?
 
-A systolic array is a 2D grid of identical Processing Elements (PEs) that each perform one Multiply-Accumulate (MAC) and pass data rhythmically to their neighbors, similar to a heartbeat pulse moving through the grid.
-
-- Each PE multiplies two values, adds the result to a running accumulator, and passes one or both values to adjacent PEs in the next clock cycle.
-- In weight-stationary dataflow, which is what the Google TPU uses, weights are preloaded into each PE once and held fixed for the entire computation. Activations flow in from the left, move rightward through the array, and partial sums accumulate downward until final results drain out at the bottom.
-- The key advantage over a general-purpose processor is that each weight is loaded once and reused for many MACs without ever going back to DRAM. On a CPU or GPU you re-fetch values from registers or cache for every operation, but the systolic array chains PEs together so data flows locally between neighbors with no repeated memory access.
-
-The concrete example from the course is the Google TPU Matrix Multiply Unit (MXU), which is a 256 by 256 systolic array containing 65,536 PEs. When multiplying two 256 by 256 matrices, all 65,536 PEs fire simultaneously every clock cycle, and no weight gets loaded from DRAM more than once for the entire operation. The slides show that this design gives the TPU 83 times better performance per watt than a CPU on inference, and that advantage comes directly from the systolic structure eliminating memory traffic.
-
-The whole point of the design is near-zero memory traffic per MAC with every PE busy every cycle, which makes GEMM dramatically more efficient than anything you can do on hardware built for general-purpose workloads.
+> So a systolic array is a 2D grid of identical Processing Elements, or PEs, where each one does a single Multiply-Accumulate operation and passes data to its neighbors in a rhythmic pulse, kind of like a heartbeat moving through the grid.
+>
+> Each PE multiplies two values, adds the result to a running accumulator, and then passes one or both values to the next PE on the next clock cycle. In weight-stationary dataflow, which is what the Google TPU uses, weights get preloaded into each PE once and stay fixed for the entire computation. Activations flow in from the left, move across the array, and partial sums accumulate downward until the final results drain out at the bottom.
+>
+> The key advantage over a general-purpose processor is that each weight is loaded from DRAM exactly once and reused for many MACs. On a CPU or GPU you keep going back to memory for values, but the systolic array chains PEs together so data flows locally between neighbors with no repeated memory access.
+>
+> The example from the course is the Google TPU Matrix Multiply Unit, which is a 256 by 256 systolic array with 65,536 PEs. When multiplying two 256 by 256 matrices, all 65,536 PEs fire every clock cycle and no weight gets loaded from DRAM more than once for the entire operation.
+>
+> The whole point is near-zero memory traffic per MAC with every PE busy every cycle, which makes GEMM way more efficient than anything you can do on general-purpose hardware.
 
 ---
 
 **Q63.** What is SIMT and how does it differ from SIMD?
 
-SIMT, Single Instruction Multiple Threads, is the execution model NVIDIA GPUs use where a single instruction is broadcast to a warp of 32 threads, and all 32 execute it simultaneously on their own private register state and their own data.
-
-- A warp is the basic scheduling unit: 32 threads that run in lockstep. The warp scheduler issues one instruction per clock and all 32 threads execute it at the same time on different data. Each thread has its own program counter and its own registers, so from the programmer's perspective every thread is independent.
-- SIMD, Single Instruction Multiple Data, is the CPU equivalent. A single instruction operates on a fixed-width vector of elements, such as 4, 8, or 16 lanes depending on the ISA, and all lanes do exactly the same operation with no independent state per lane.
-- The key difference is what happens when code branches. In SIMD all lanes are forced to execute identically. In SIMT threads can branch independently, but when threads within the same warp take different paths, the hardware serializes both paths and masks off whichever side is not active. This is warp divergence, and it costs up to 2x throughput per branch level.
-- For handling memory stalls, SIMD relies on out-of-order execution and large caches. SIMT uses zero-overhead warp switching: when one warp stalls waiting on a memory load, the scheduler instantly swaps in another ready warp and keeps the execution units busy without any idle cycles.
-- SIMT was coined by NVIDIA and is not part of Flynn's original taxonomy. It extends SIMD by giving each thread its own program counter and register file.
-
-A concrete example is matrix multiply on a GPU. All 32 threads in a warp each compute one output element of the same matrix, running the identical multiply-add instruction on different positions in the matrix. There is no branching, no divergence, and SIMT runs at full throughput. Now consider adding ReLU, which sets negative values to zero. That conditional causes threads with positive results and threads with negative results to diverge inside the same warp, the hardware runs the positive side then the negative side separately with half the threads idle each time, and throughput drops in half.
-
-The bottom line is that SIMT gives you massive parallelism that scales to thousands of threads with the same code, while SIMD is fixed-width and limited to whatever vector width the ISA defines.
+> So SIMT stands for Single Instruction Multiple Threads, and it's the execution model NVIDIA GPUs use where a single instruction gets broadcast to a warp of 32 threads and all 32 execute it simultaneously on their own private data and their own registers.
+>
+> A warp is that basic group of 32 threads running in lockstep. The warp scheduler issues one instruction per clock and every thread in the warp executes it at the same time on different data. Each thread has its own program counter and its own register file, so from the programmer's perspective every thread is completely independent.
+>
+> SIMD, Single Instruction Multiple Data, is the CPU version of this. A single instruction operates on a fixed-width vector, like 4, 8, or 16 lanes depending on the ISA (Instruction Set Architecture), and all lanes do exactly the same thing with no independent state per lane.
+>
+> The key difference is what happens at a branch. In SIMD all lanes are forced to do the same thing. In SIMT threads can branch independently, but if threads in the same warp take different paths the hardware serializes both paths and masks off whichever side isn't active. That's warp divergence and it costs up to 2x throughput per branch level.
+>
+> The other big difference is how they handle memory stalls. SIMD relies on out-of-order execution and caches. SIMT uses zero-overhead warp switching — when one warp stalls the scheduler instantly swaps in another ready warp and keeps the execution units busy.
 
 ---
 
 **Q64.** What is shared memory and why does it matter for GPU performance?
 
-Shared memory is a programmer-managed on-chip scratchpad inside each Streaming Multiprocessor (SM) that all threads within the same thread block can read and write at very low latency.
-
-- The problem it solves is that global memory lives off-chip in DRAM, which has latency hundreds of clock cycles long and finite bandwidth shared across the whole chip. When threads repeatedly fetch from DRAM, they spend most of their time waiting, not computing.
-- Shared memory sits physically on the SM, so it operates at far lower latency and much higher per-SM bandwidth than DRAM. On the H100 each SM has about 228 KB of shared memory available.
-- The key use case is data reuse across threads. If multiple threads in a block all need the same input values, you load that data once from DRAM into shared memory as a group, and then every thread reads from the fast on-chip copy rather than each thread going back to DRAM independently.
-- Shared memory is per-block, so threads in different blocks running on different SMs cannot share data through it. Cross-block communication goes back through slow global memory, which is one of the core architectural constraints that shapes how GPU kernels are written.
-
-The clearest example is tiled GEMM. In naive GEMM every element of matrices A and B gets loaded from DRAM N times over, once for every dot product it participates in, giving arithmetic intensity of just 0.25 FLOP per byte. With tiling, each thread block loads one tile into shared memory and all threads compute their partial results against that local copy. Each element is read from DRAM exactly once, which drops total traffic from 2N cubed bytes down to 2N squared bytes. For N=64, that is a 64 times reduction in DRAM traffic and raises arithmetic intensity from 0.25 up to 16 FLOP per byte, which is the difference between a completely memory-starved kernel and one approaching the ridge point.
-
-The on-chip versus off-chip memory gap is so large that direct programmer control over what stays on chip is essential for performance, and shared memory is how the GPU gives you that control.
+> So shared memory is a programmer-managed on-chip scratchpad inside each SM that all threads within the same thread block can read and write at very low latency.
+>
+> The problem it solves is that global memory lives off-chip in DRAM, which has latency hundreds of clock cycles long and limited bandwidth shared across the whole chip. When threads keep going back to DRAM for data, they spend most of their time waiting, not computing.
+>
+> Shared memory sits physically on the SM, so it's much faster and has way higher bandwidth than DRAM. The key use case is data reuse across threads — if multiple threads in a block all need the same values, you load that data once from DRAM into shared memory as a group, and then every thread reads from the fast on-chip copy instead of each thread making its own trip to DRAM.
+>
+> One important constraint is that shared memory is per-block. Threads in different blocks on different SMs can't share data through it. Cross-block communication has to go back through slow global memory, which is one of the core architectural constraints that shapes how GPU kernels are written.
+>
+> The clearest example is tiled GEMM. In naive GEMM the same element gets loaded from DRAM over and over for every dot product it shows up in. With tiling, the thread block loads one tile into shared memory once, everyone computes against that on-chip copy, and each element only makes the trip from DRAM once. That's what drops traffic from 2N cubed bytes down to 2N squared bytes and pushes arithmetic intensity from 0.25 up to N/4.
 ---
 
 **Q66.** What is a warp and how does the GPU use it to hide memory latency?
 
-A warp is a group of 32 threads that execute the same instruction simultaneously under the SIMT (Single Instruction Multiple Threads) model. It is the basic unit of scheduling on an NVIDIA GPU.
-
-- Every SM has 4 warp schedulers. Each scheduler tracks a pool of active warps and issues one instruction per clock cycle to whichever warp is ready to run.
-- When a warp issues a memory load from DRAM, it gets marked as not ready and the scheduler immediately switches to a different warp that has its data and can keep going. This is zero-overhead context switching (meaning the switch itself costs nothing — no registers are saved or loaded).
-- On a CPU, switching threads requires saving the current thread's registers out to memory and loading the next thread's registers back in. The GPU never does this because every active warp's registers are permanently allocated in the register file at all times. Switching is just the scheduler pointing at a different warp on the next clock cycle.
-- Occupancy is the ratio of active warps to the maximum possible warps on an SM. Higher occupancy gives the scheduler more warps to choose from, which means more opportunities to cover memory stalls with useful work.
-
-A concrete example: imagine a GEMM kernel where every warp loads a tile from DRAM. The first warp fires off its load and stalls. The scheduler instantly switches to the second warp, which fires its load and stalls. By the time the scheduler cycles back to the first warp, the data has arrived and it can continue computing. Without this switching, every load would freeze the whole SM and most of the execution units would sit idle waiting on memory.
-
-The whole design is built around one idea: instead of making memory faster or adding prediction logic like a CPU does, the GPU keeps thousands of threads in flight so the math units never have to wait.
+> So a warp is a group of 32 threads that execute the same instruction at the same time under SIMT, Single Instruction Multiple Threads. It's the basic scheduling unit on an NVIDIA GPU.
+>
+> Every SM has warp schedulers that each track a group of active warps and issue one instruction per clock to whichever warp is ready to run. When a warp issues a memory load from DRAM, it gets marked as not ready and the scheduler immediately switches to a different warp that has its data and can keep going. That's zero-overhead context switching — the switch itself costs nothing because every active warp's registers are permanently allocated in the register file at all times. The scheduler just points at a different warp on the next clock cycle.
+>
+> That's completely different from a CPU where switching threads means saving the current thread's registers out to memory and loading the next thread's back in. The GPU never has to do any of that.
+>
+> Occupancy is the ratio of active warps to the maximum possible warps on an SM. Higher occupancy gives the scheduler more warps to choose from, which means more opportunities to cover memory stalls with useful work. If occupancy is low, the scheduler runs out of ready warps and the execution units just sit idle.
 ---
 
 **Q67.** Why does tiled GEMM perform so much better than naive GEMM?
 
-The problem with naive GEMM is that every thread independently goes to DRAM every single time it needs a value from the input matrices. The same element gets loaded over and over again for every dot product it shows up in, so for a large matrix you end up with a huge amount of redundant memory traffic. DRAM is slow and far from the chip, so the kernel just sits there waiting on memory most of the time instead of doing useful math.
-
-Tiled GEMM fixes this by using shared memory. Instead of every thread going to DRAM on its own, the whole thread block cooperates to load one tile into shared memory first, and then everyone does their math against that on-chip copy. Each element only makes the trip from DRAM once. Shared memory is right there on the chip so it is much faster, and because you reuse it many times before moving to the next tile, you are doing way more work per byte you actually move.
-
-The result is that arithmetic intensity goes way up. You went from loading the same data over and over to loading it once and squeezing as much math out of it as possible. That is what moves the kernel from being stuck on the memory-bound side of the roofline toward the ridge point.
-
-The one catch is tile size. Bigger tiles mean more reuse and less DRAM traffic, but they eat up more shared memory, which limits how many thread blocks fit on an SM at once. Fewer blocks means fewer warps, which means less ability to hide latency. So tile size is a balancing act between reuse and occupancy.
+> So the problem with naive GEMM is that every thread independently goes to DRAM every single time it needs a value from the input matrices. Think of it like going to your locker every single time you need a number — your locker is far away, so most of your time is spent walking back and forth instead of actually doing math. The same element gets loaded over and over for every dot product it shows up in, which means a huge amount of redundant memory traffic.
+>
+> Tiled GEMM fixes this with shared memory. Instead of every thread making its own trip to DRAM, the whole thread block cooperates to grab a chunk of values and bring them on-chip first, then everyone does their math against that local copy. Way less walking, way more math. Each element only makes the trip from DRAM once, and you squeeze as many calculations out of it as possible before going back for more.
+>
+> The result is arithmetic intensity goes from 0.25 FLOP/byte in naive up to N/4 in tiled. The bigger N is, the more math you can squeeze out of each tile before going back — so the advantage of tiling grows with N.
+>
+> The one tradeoff is tile size. Bigger tiles mean more reuse and less DRAM traffic, but they eat up more shared memory, which limits how many thread blocks fit on an SM at once and hurts occupancy.

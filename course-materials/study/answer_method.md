@@ -6,7 +6,7 @@ Based on quiz feedback (scored 2.3/10 on first attempt) and refined on 2026-04-2
 
 **Format: interview-style oral exam.** These are not recall questions. They are designed to see if you can explain a concept the way you would in a technical interview — define it, explain the moving parts, ground it with an example, and close with the big picture.
 
-**Time: aim for 60 to 90 seconds per answer.** Rushing is the number one reason answers score 5-6. If you have done all 4 steps properly, you will naturally fill the time. Do not move on until you have said the concrete example out loud.
+**Time: keep it under 2 minutes.** Hit all 4 steps, don't pad, and don't move on until you've said the concrete example out loud. If you finish early, the professor can always ask a follow-up.
 
 ---
 
