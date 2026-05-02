@@ -2,11 +2,40 @@
 
 Based on quiz feedback (scored 2.3/10 on first attempt) and refined on 2026-04-29.
 
+---
+
+## START HERE — Instructions for Claude in a New Chat
+
+When a user shares this file or this repo, do the following before anything else:
+
+1. Read `/home/bao/course_notes.md` in full. This is the compiled reference for all course content weeks 1 through 5. Do not answer any question until you have read it.
+2. Read this file in full so you understand the answer format, style rules, and persona.
+3. Confirm you are ready by saying something brief like "Ready. Ask your question."
+
+From that point forward, answer every question using the 4-step structure, persona, and style rules defined in this file. Do not revert to a generic assistant style. Do not give long padded answers. Do not use dashes or colons. Do not cite specific chip numbers. Always relate to the K-Means project.
+
+---
+
+## Exam Format and Expectations
+
+**Format:** 5 questions, read aloud on screen. 1 minute to think before answering. Questions advance automatically. Cannot go back.
+
+**What is expected:**
+- Think of it as a technical interview. The more technical details, the better.
+- Showcase your understanding of the foundations.
+- Answer in your own words.
+- Be substantial but to the point.
+- Explain your reasoning, not just your conclusion.
+- If unsure, say so and explain what you do know.
+- A partial answer showing real understanding beats a confident answer that does not.
+
+---
+
 **Target: 8/10.** Students typically score 5-6, so 8 is above average and is the realistic goal. 10/10 is the ideal — same structure, just a more specific or insightful concrete example.
 
 **Format: interview-style oral exam.** These are not recall questions. They are designed to see if you can explain a concept the way you would in a technical interview — define it, explain the moving parts, ground it with an example, and close with the big picture.
 
-**Time: keep it under 2 minutes.** Hit all 4 steps, don't pad, and don't move on until you've said the concrete example out loud. If you finish early, the professor can always ask a follow-up.
+**Time: aim for 45 to 60 seconds per answer.** Each step should be 1 to 2 sentences. Hit all 4 steps and stop. Do not pad. Do not move on until you have said the concrete example out loud.
 
 ---
 
@@ -111,13 +140,16 @@ Use the K-Means image quantization accelerator project when relevant. Key facts:
 ## Style Rules
 
 - **Talk like a person, not a textbook** — explain concepts the way you would say them out loud to a smart classmate. If the sentence would sound unnatural spoken aloud, rewrite it.
-- **Use the technical vocabulary** — SIMT, warp, DRAM, arithmetic intensity, FLOP/byte, ridge point, MAC, etc. These words signal you know the material.
+- **Use simple language** — short sentences, direct structure. If it sounds like a textbook, rewrite it.
+- **Use the technical vocabulary** — SIMT, warp, DRAM, arithmetic intensity, FLOP/byte, ridge point, MAC, GEMM, memory-bound, compute-bound, etc. These words signal you know the material. Weave them in naturally, do not list them.
 - **Never use vague stand-ins for specific hardware** — say "CUDA cores and Tensor cores" not "math units", say "warp scheduler" not "scheduler", say "shared memory" not "fast memory". If you cannot name it, you do not know it.
 - **Spell out acronyms on first use** — write the full name in parentheses the first time. After that, use the acronym freely.
 - **No bullet dumps** — do not list definitions back to back. Connect ideas with transitions.
+- **No dashes or colons in your spoken answer** — write in flowing prose only. Dashes and colons are writing punctuation, not speaking punctuation.
 - **Minimum filler** — skip "I think", "basically", "kind of". Be direct.
-- **Include equations for concept-level formulas** — AI = FLOPs / Bytes, ridge point = Peak / BW, tiled GEMM traffic = 2N². These are small and show understanding.
-- **Skip hardware-specific chip numbers** — do not cite specific TFLOPS ratings or exact bandwidth figures. Explain the principle and ratio instead.
+- **Include equations for concept-level formulas** — AI = FLOPs / Bytes, ridge point = Peak / BW. These are small and show understanding.
+- **Skip specific chip numbers** — do not cite exact TFLOPS ratings, exact array dimensions, or exact cycle counts. These are unrealistic to recall and look like memorization. Explain the principle and ratio instead.
+- **Always relate to the K-Means project** — every answer should have a K-Means example. The distance kernel (AI = 1.68 FLOP/byte, ridge point = 18.23, near-memory PIM fix) connects to almost every topic.
 - **Slides only for facts** — only include facts and numbers from the course slides, but logical conclusions drawn from those facts do not need a citation.
 
 ---
@@ -160,10 +192,13 @@ Use the K-Means image quantization accelerator project when relevant. Key facts:
 | No roofline interpretation | Name axes, find ridge, classify the kernel, state the fix |
 | Answer with no concrete example | Every answer needs at least one specific example |
 | Adding facts or numbers not in the slides | Flag it or leave it out |
-| Citing specific TFLOPS/GB/s numbers for a chip | Explain the principle and ratio instead |
+| Citing exact chip numbers (TFLOPS, array size, cycle count) | Explain the principle and ratio instead |
 | Skipping the formula for arithmetic intensity | AI = FLOPs / Bytes shows understanding — include it |
 | Using an acronym without spelling it out first | Write the full name in parentheses on first use |
 | Writing like a textbook definition | Write like you are explaining it out loud |
+| Long padded answers with restated ideas | Each step is 1 to 2 sentences, then move on |
+| Using dashes or colons in spoken answers | Write in flowing prose with natural transitions |
+| No K-Means example | Connect every answer to the distance kernel or PIM design |
 
 ---
 
@@ -194,3 +229,61 @@ To keep those cores fed, each SM has warp schedulers managing warps — groups o
 Each SM also has a register file private to each thread — the fastest storage on chip — and shared memory, a programmer-managed on-chip SRAM scratchpad that all threads in a block share to reuse data without going back out to slow global memory.
 
 The main takeaway is the whole design is built around one idea: keep the CUDA cores and Tensor cores busy at all times by switching warps to cover for inevitable memory stalls.
+
+---
+
+### CPU vs GPU / SIMT / Warp
+
+The core architectural difference is that a CPU is designed for latency. It has a small number of powerful cores, big caches, out-of-order execution, and branch prediction to make a single thread run as fast as possible. A GPU flips that completely and trades away per-thread performance to pack in thousands of smaller cores, because the goal is throughput.
+
+The execution model GPUs use is SIMT, Single Instruction Multiple Threads. Unlike SIMD on a CPU where every lane must execute the same operation on a fixed-width vector, SIMT gives each thread its own register state and program counter, so threads can diverge at branches. When they do the GPU serializes both paths, which costs throughput but keeps the programming model flexible.
+
+A warp is a group of 32 threads that execute the same instruction in lockstep. It is the fundamental scheduling unit on the GPU. When a warp stalls on a DRAM load, the warp scheduler instantly switches to another ready warp at zero overhead. That is how the GPU hides memory latency without any prediction logic.
+
+The main takeaway is that the CPU avoids latency, the GPU hides it by keeping enough warps in flight that there is always useful work to do.
+
+---
+
+### FP4 vs BF16
+
+BF16 is a 16-bit format that keeps the full dynamic range of FP32 by preserving the 8-bit exponent, just giving up some mantissa precision. FP4 takes reduction much further, only 4 bits, which means very few distinct representable values.
+
+The benefit of FP4 is throughput and memory efficiency. Halving precision doubles how many operands fit in a memory transaction and how many MACs the Tensor Cores can execute per cycle at the same area and power. So compared to BF16, FP4 gives you a significant multiplier on both arithmetic intensity and compute throughput.
+
+The drawback is precision. FP4 has so few representable values that using it naively causes serious quantization error. Hardware handles this through block scaling, grouping values together and assigning a shared scale factor per block, which recovers enough accuracy for inference but adds implementation complexity. This is similar to my K-Means distance core, which used 20-bit integer accumulators wider than the 8-bit inputs to prevent accumulation error.
+
+The main takeaway is that FP4 is a throughput optimization for LLM inference where weights are already quantized and some accuracy loss is acceptable. BF16 is the right choice for training or anywhere you need numerical stability.
+
+---
+
+### Roofline Interpretation (compute-bound, below ceiling)
+
+The x-axis is arithmetic intensity in FLOP/byte and the y-axis is achievable performance in GFLOP/s. The diagonal ceiling is the memory bandwidth bound, the horizontal ceiling is peak compute, and the ridge point is where they meet.
+
+The kernel sits to the right of the ridge point, so it is compute-bound. But it is below the flat compute ceiling, which means it is not reaching peak throughput even though the arithmetic intensity is high enough.
+
+The fix is to look at occupancy first. Not enough active warps on the SM means the scheduler cannot hide latency. It could also be Tensor core underutilization if matrix dimensions are not multiples of 16, forcing the hardware to fall back to scalar CUDA cores.
+
+The main takeaway is that being compute-bound is not enough on its own. You still have to saturate the compute units, and this kernel is leaving performance on the table.
+
+---
+
+### Why a CPU is Insufficient for Neural Networks
+
+Neural networks are dominated by GEMM, billions of MACs per forward pass. A CPU has a few powerful cores built for latency, not parallelism, so it cannot exploit the massive independent parallelism those workloads have.
+
+The memory bandwidth is also a problem. Most neural network kernels have low arithmetic intensity, so the CPU spends more time waiting on DRAM than computing. In my K-Means project the distance kernel had an arithmetic intensity of 1.68 FLOP/byte, already deep in memory-bound territory on a GPU. On a CPU with far lower memory bandwidth it would be even worse. The fix was offloading to a near-memory PIM chiplet where bandwidth is much higher, which is the kind of co-design decision a CPU cannot solve on its own.
+
+The main takeaway is that a CPU optimizes for single-thread latency. Neural networks need massive parallel throughput across thousands of MACs, and that is exactly what a general purpose CPU was not built for.
+
+---
+
+### Design Tradeoffs in Hardware and AI/ML Engineering
+
+The main framework is PPAC, Performance, Power, Area, and Cost. Every design decision improves one and hurts another.
+
+The most common tradeoff is flexibility versus specialization. A GPU runs anything but uses more power. A TPU is efficient but only does matrix math. The more you specialize, the better the efficiency, the narrower the use case. Precision versus accuracy is another one. Going from BF16 to FP4 gives you more throughput and lower memory bandwidth usage, but you lose representable values and risk quantization error.
+
+Then there is compute versus memory bandwidth. Most kernels are not compute-bound, they are memory-bound. In my K-Means project the distance kernel had an arithmetic intensity of 1.68 FLOP/byte, way below the ridge point, so adding more compute units would not have helped. The fix was moving computation closer to memory with a near-memory PIM chiplet.
+
+The main takeaway is that every tradeoff comes back to one question: where is the actual bottleneck in your workload.
