@@ -156,6 +156,13 @@ This section tracks which slide files have been processed into notes or the chea
 | `w5_mon_recap.pdf` | GPU power trends (A100→Vera Rubin), PUE, data center scale, AI/EDA tools, Quiz 1 info | `week05_notes.md` §1, `quiz2_cheatsheet.md` §1 |
 | `w5_mon_tpu_gpu_transformers.pdf` | CPU/GPU/TPU comparison, systolic arrays (3 dataflows), TPU roadmap v4→v7, BF16, transformers (non-recurrent, self-attention Q/K/V), NVIDIA Transformer Engine, Blackwell B200, neuromorphic/SNN, No Free Lunch, CUDA MLP | `week05_notes.md` §2–12, `quiz2_cheatsheet.md` §2–16 |
 
+### Week 6 — `course-materials/week06/`
+
+| Slide file | Topics | Covered in |
+|-----------|--------|------------|
+| `w6_mon_recap.pdf` | Week 5 recap, Quiz 1 reminder, Google TPU 8 (8t vs 8i), week plan | `week06_notes.md` §0 |
+| `w6_mon_transformers_in_memory.pdf` | Algorithm acceleration (traditional + emerging tech tables), processor evolution, NFL theorem, TPU/systolic recap, transformer (what is it, learning, RLHF, recurrence, math ops, learned vs fixed, GPU mapping) | `week06_notes.md` §1–5 |
+
 ### What to do when new slides are uploaded
 
 1. Add a row to the table above for the new file
