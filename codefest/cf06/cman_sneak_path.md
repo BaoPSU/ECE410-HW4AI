@@ -15,6 +15,8 @@
 
 ## (a) Ideal read — compute I_col0
 
+![Ideal read current flow](cman_ideal.png)
+
 **Conditions:** V_row0 = 1 V, V_row1 = 0 V (grounded), V_col0 = 0 V (virtual ground), V_col1 = 0 V (grounded).
 
 Both row 1 and col 1 are held at 0 V, so no sneak path can form.
@@ -30,6 +32,8 @@ This correctly encodes the dot product: only the on-cell R[0][0] contributes.
 ---
 
 ## (b) Sneak-path read — KCL for V_row1 and V_col1
+
+![Sneak path current flow](cman_sneak.png)
 
 **Conditions:** V_row0 = 1 V, V_col0 = 0 V (virtual ground). **Row 1 and col 1 are floating** (undriven).
 
