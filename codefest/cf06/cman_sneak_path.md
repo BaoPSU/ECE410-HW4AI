@@ -15,10 +15,6 @@
 
 ## (a) Ideal read — compute I_col0
 
-![Ideal read current flow](cman_ideal.png)
-
-![Ideal read equivalent circuit](cman_equiv_ideal.png)
-
 **Conditions:** V_row0 = 1 V, V_row1 = 0 V (grounded), V_col0 = 0 V (virtual ground), V_col1 = 0 V (grounded).
 
 Both row 1 and col 1 are held at 0 V, so no sneak path can form.
@@ -34,10 +30,6 @@ This correctly encodes the dot product: only the on-cell R[0][0] contributes.
 ---
 
 ## (b) Sneak-path read — KCL for V_row1 and V_col1
-
-![Sneak path current flow](cman_sneak.png)
-
-![Sneak path equivalent circuit](cman_equiv_sneak.png)
 
 **Conditions:** V_row0 = 1 V, V_col0 = 0 V (virtual ground). **Row 1 and col 1 are floating** (undriven).
 
@@ -106,3 +98,9 @@ The sneak path adds **+0.2 mA** (20% error) to the intended 1 mA signal.
 ## (d) Why sneak paths corrupt MVM results
 
 Col 0 is supposed to experience 1 mA — the intended signal from R[0][0] representing the weight–input product. But because row 1 and col 1 are floating, col 0 is also experiencing an extra 0.2 mA from the sneak path looping through R[0][1], R[1][1], and R[1][0], current that has nothing to do with the intended computation. The sense amplifier on col 0 reads 1.2 mA instead of 1 mA and has no way to tell the two apart, so the MVM output is wrong. In a large crossbar array this gets worse fast — every floating row and column adds more sneak loops, and all of those extra currents pile onto the column sense lines together, corrupting every dot product being read at the same time.
+
+---
+
+## Handwritten work
+
+[cman_handwritten.pdf](cman_handwritten.pdf)
