@@ -1,40 +1,33 @@
 # CF06 CLLM — Spoken Script (No Slides)
+**Prompt:** "Explain your codefest 6 CLLM design, the testbench, and the simulation results."
 ~5 minutes, verbal only
 
 ---
 
-So for CF06 CLLM I had Claude Sonnet 4.6 generate a 4-by-4 binary-weight crossbar MAC unit in SystemVerilog, and then I wrote the testbench myself and ran the simulation. All four outputs came out exactly right. I'll walk you through the design, the choices I made, and why I know it's working.
+## The Design
+
+For CF06 CLLM I had Claude Sonnet 4.6 generate a 4-by-4 binary-weight crossbar MAC unit in SystemVerilog.
+
+So about the design — the module takes four 8-bit signed inputs, a 4-by-4 weight matrix where every weight is either plus-one or minus-one, and produces four 10-bit signed outputs. Each clock cycle, every output computes a dot product — you multiply each input by its weight at that row-column intersection and sum them up. That's basically what a crossbar does — it's a grid of wires where rows carry inputs, columns carry outputs, and the weights sit at the intersections.
+
+The module has three stages. The first is the weight register — a flip-flop that latches the full weight matrix when you pulse weight_load high. I packed the entire 4-by-4 matrix into one 16-bit flat register, where bit 4i plus j holds weight[i][j]. So for example, bit zero is weight[0][0], bit four is weight[1][0], and so on. The reason I chose a flat register is it loads the entire matrix in exactly one clock cycle instead of loading row by row.
+
+The second stage is the combinational MAC — just wires, no clock. It sign-extends the inputs to 10 bits and computes all four dot products simultaneously. And then the third stage is the output register, which latches the results on the next rising edge.
+
+For the output bit width — for example, worst case is four inputs at plus or minus 127, so 4 times 127 is roughly 508. And 10-bit signed goes up to 511, so basically that's just enough.
 
 ---
 
-**The design**
+## The Testbench
 
-So about the module — the idea is pretty simple. You have four 8-bit signed inputs, a 4-by-4 weight matrix where every weight is either plus-one or minus-one, and four output accumulators. Each clock cycle, every output computes a dot product — you multiply each input by its weight and sum them up. That's it.
+So about the testbench — I loaded the weight matrix from the assignment spec, which is plus-one, minus-one, plus-one, minus-one on row zero, plus-one, plus-one, minus-one, minus-one on row one, and so on. And then I applied inputs of 10, 20, 30, and 40.
 
-I structured it as three stages. First is the weight register — a flip-flop that latches the weight matrix when you pulse weight_load. Second is the combinational MAC — just wires, no clock, computes all four dot products simultaneously. And then the output register latches the results on the next rising edge.
+Before running the simulation I hand-calculated the expected outputs. For example, column zero — you get plus-ten from row 0, plus-twenty from row 1, and then minus-thirty and minus-forty from rows 2 and 3. And so that adds up to minus-40. I did the same for all four columns and got minus-40, zero, minus-20, and minus-20.
 
----
-
-**The choices I made**
-
-For example, the weight encoding — I packed the entire 4-by-4 matrix into one 16-bit flat register. The rule is bit 4i plus j holds weight[i][j], where 1 means plus-one and 0 means minus-one. I chose this because it loads the entire weight matrix in exactly one clock cycle with one signal. The alternative would be loading row by row — like, that's four cycles and you need an address counter on top of it. The flat register keeps it simple.
-
-And then about the output bit width — I chose 10-bit signed. For example, the worst case is four inputs at plus or minus 127, so 4 times 127 is roughly 508. 10-bit signed goes up to 511, so basically that's exactly enough. Not too wide, not overflowing.
-
-And one choice I had to make that wasn't in the spec — iverilog 12 doesn't support variable bit-selects on unpacked arrays inside always blocks. And so I switched to individual scalar ports and wires instead. For example, instead of in_data[0][7] for the sign bit, I pulled each input out to its own wire and did the sign extension there. It actually made the interface cleaner — each port is explicit, nothing is hidden in an array.
+One thing about the timing I had to get right — the output shows up two cycles after you assert weight_load, not one. Basically here's why: on the first rising edge after weight_load, the weight register latches the new weights. But the output register clocks on that same edge and it's still using the old weights. And so the correct output only appears one cycle later. The testbench explicitly waits two cycles before reading the outputs.
 
 ---
 
-**Why I know it's working**
+## The Simulation Results
 
-So about the testbench — before I ran anything I hand-calculated the expected outputs. The weight matrix from the assignment is plus-one, minus-one, plus-one, minus-one on row zero, and so on. Inputs are 10, 20, 30, 40. For example, column zero — plus-ten, plus-twenty, minus-thirty, minus-forty — that's exactly minus-40. I did that for all four columns before touching the simulator.
-
-And then about the timing — the output shows up two cycles after weight_load, not one. Basically here's why: the weight register and output register both clock on the same rising edge. And so on the first edge after weight_load, the weights latch — but the output register is still sampling the MAC with the old weights. One cycle later the MAC is using the new weights, and then the output register captures the correct result. If I hadn't accounted for that, I would've read zeros and thought the design was broken. The testbench explicitly waits two cycles.
-
-The simulation confirmed it — out-zero came out minus-40, out-one zero, out-two and out-three both minus-20. Exactly what the hand calculation said. 4 out of 4.
-
----
-
-**Wrap up**
-
-So basically — the design works because the choices were made for specific reasons. Flat weight register for single-cycle loading. Scalar ports for iverilog compatibility. 10-bit outputs for correct range. 2-cycle testbench timing because that's what the pipeline actually does. Every output matches the hand calculation. Thanks.
+All four outputs matched exactly. Out-zero is minus-40, out-one is zero, out-two and out-three are both minus-20 — exactly what the hand calculation said. 4 out of 4. Thanks.
