@@ -14,7 +14,7 @@ The module has three stages. First stage is the weight register, it's a flip-flo
 
 The second stage is the combinational MAC, those are just wires, no clock, which sign-extends the inputs to 10 bits and computes all four dot products at the same time. Then the third stage is the output register, which latches the results on the next rising edge.
 
-As for the output bit width, worst case is four inputs at plus or minus 127, so 4 times 127 is 508. And 10-bit signed goes up to 511, which is close enough.
+As for the output bit width, worst case is four inputs at plus or minus 127, so 4 times 127 is 508. And 10-bit signed goes up to 511, which clears the threshold we need.
 
 ---
 
