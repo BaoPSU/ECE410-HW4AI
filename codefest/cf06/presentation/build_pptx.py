@@ -30,8 +30,9 @@ def section_label(sl, text):
     r.font.bold = True
     r.font.color.rgb = GREEN
 
-def script_text(sl, paragraphs, size=26):
-    tb = sl.shapes.add_textbox(Inches(0.4), Inches(0.65), Inches(12.5), Inches(6.7))
+def script_text(sl, paragraphs, size=22, img=None):
+    tw = 7.5 if img else 12.5
+    tb = sl.shapes.add_textbox(Inches(0.4), Inches(0.65), Inches(tw), Inches(6.7))
     tf = tb.text_frame
     tf.word_wrap = True
     for i, para in enumerate(paragraphs):
@@ -41,6 +42,8 @@ def script_text(sl, paragraphs, size=26):
         r.text = para
         r.font.size = Pt(size)
         r.font.color.rgb = BLACK
+    if img:
+        sl.shapes.add_picture(OUT + img, Inches(8.1), Inches(0.65), width=Inches(5.0))
 
 # ── SLIDE 1: TITLE ────────────────────────────────────────────────────────────
 sl = add_slide()
@@ -68,7 +71,7 @@ script_text(sl, [
     "Each clock cycle, every output computes a dot product, so basically you multiply each input by its weight at that row-column intersection and add them up.",
     "",
     "That's what the crossbar does, a grid of wires where rows carry inputs, columns carry outputs, and the weights sit at the intersections.",
-])
+], img="crossbar.png")
 
 # ── SLIDE 3: THE DESIGN — PART 2 (3 STAGES) ──────────────────────────────────
 sl = add_slide()
@@ -79,7 +82,7 @@ script_text(sl, [
     "Claude packed the entire 4-by-4 matrix into a single 16-bit flat register, where bit 4i plus j holds weight[i][j]. For an example, bit zero is weight[0][0], bit four would be weight[1][0], and so on.",
     "",
     "I asked Claude why it went with a flat register and it said it actually loads the entire matrix in exactly one clock cycle. Like if you loaded row by row, that would've taken four cycles and you'd need an address counter to track which row you're on, so the flat register just keeps it simple.",
-])
+], img="encoding.png")
 
 # ── SLIDE 4: THE DESIGN — PART 3 (MAC + BIT WIDTH) ───────────────────────────
 sl = add_slide()
@@ -90,7 +93,7 @@ script_text(sl, [
     "Then the third stage is the output register, which latches the results on the next rising edge.",
     "",
     "As for the output bit width, worst case is four inputs at plus or minus 127, so 4 times 127 is 508. And 10-bit signed goes up to 511, which clears the threshold we need.",
-])
+], img="pipeline.png")
 
 # ── SLIDE 5: THE TESTBENCH — PART 1 ──────────────────────────────────────────
 sl = add_slide()
@@ -101,7 +104,7 @@ script_text(sl, [
     "Before running the simulation I hand-calculated the expected outputs, so for example, column zero, you get plus-ten from row 0, plus-twenty from row 1, and then minus-thirty and minus-forty from rows 2 and 3, and so that adds up to minus-40.",
     "",
     "I did the same for all four columns and got minus-40, zero, minus-20, and minus-20.",
-])
+], img="crossbar.png")
 
 # ── SLIDE 6: THE TESTBENCH — PART 2 (TIMING) ─────────────────────────────────
 sl = add_slide()
@@ -112,7 +115,7 @@ script_text(sl, [
     "Basically here's why, so on the first rising edge after weight_load, the weight register latches the new weights, but the output register clocks on that same edge and it's still using the old weights.",
     "",
     "And so the correct output only appears one cycle later. The testbench explicitly waits two cycles before reading the outputs.",
-])
+], img="timing.png")
 
 # ── SLIDE 7: THE SIMULATION RESULTS ──────────────────────────────────────────
 sl = add_slide()
@@ -123,7 +126,7 @@ script_text(sl, [
     "Out-zero is minus-40, out-one is zero, out-two and out-three are both minus-20, exactly what my hand calculation said.",
     "",
     "So 4 out of 4, that's pretty good. Thanks.",
-], size=32)
+], size=28, img="results.png")
 
 prs.save(PPTX)
 print(f"Saved — {len(prs.slides)} slides")
