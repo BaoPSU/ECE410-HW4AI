@@ -8,13 +8,13 @@
 
 For CF06 CLLM I had Claude Sonnet 4.6 generate a 4-by-4 binary-weight crossbar MAC unit in SystemVerilog.
 
-So about the design. The module takes four 8-bit signed inputs, a 4-by-4 weight matrix where every weight is either plus-one or minus-one, and produces four 10-bit signed outputs. Each clock cycle, every output computes a dot product, so you multiply each input by its weight at that row-column intersection and sum them up. That's basically what a crossbar does, which is a grid of wires where rows carry inputs, columns carry outputs, and the weights sit at the intersections.
+So about the design. The module takes four 8-bit signed inputs, a 4-by-4 weight matrix where each weight is either plus-one or minus-one, and produces four 10-bit signed outputs. Each clock cycle, every output computes a dot product, so basically you multiply each input by its weight at that row-column intersection and add them up. That's what the crossbar does, a grid of wires where rows carry inputs, columns carry outputs, and the weights sit at the intersections.
 
-The module has three stages, so first it's the weight register, basically a flip-flop that latches the full weight matrix when you pulse weight_load high. Claude packed the entire 4-by-4 matrix into one 16-bit flat register, where bit 4i plus j holds weight[i][j]. So for example, bit zero is weight[0][0], bit four is weight[1][0], and so on, and the reason Claude went with a flat register is it loads the entire matrix in exactly one clock cycle instead of loading row by row.
+The module has three stages. First stage is the weight register, it's a flip-flop that latches the full weight matrix when you pulse weight_load high. Claude packed the entire 4-by-4 matrix into a single 16-bit flat register, where bit 4i plus j holds weight[i][j]. For an example, bit zero is weight[0][0], bit four would be weight[1][0], and so on. I asked Claude why it went with a flat register and it said it actually loads the entire matrix in exactly one clock cycle instead of loading row by row.
 
-The second stage is the combinational MAC, just wires, no clock, which sign-extends the inputs to 10 bits and computes all four dot products at the same time. And then the third stage is the output register, which latches the results on the next rising edge.
+The second stage is the combinational MAC, those are just wires, no clock, which sign-extends the inputs to 10 bits and computes all four dot products at the same time. Then the third stage is the output register, which latches the results on the next rising edge.
 
-As for the output bit width, for an example, worst case is four inputs at plus or minus 127, so 4 times 127 is roughly 508. And 10-bit signed goes up to 511, so basically that's just enough.
+As for the output bit width, worst case is four inputs at plus or minus 127, so 4 times 127 is 508. And 10-bit signed goes up to 511, which is close enough.
 
 ---
 
