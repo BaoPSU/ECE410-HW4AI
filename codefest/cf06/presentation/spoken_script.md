@@ -8,26 +8,26 @@
 
 For CF06 CLLM I had Claude Sonnet 4.6 generate a 4-by-4 binary-weight crossbar MAC unit in SystemVerilog.
 
-So about the design — the module takes four 8-bit signed inputs, a 4-by-4 weight matrix where every weight is either plus-one or minus-one, and produces four 10-bit signed outputs. Each clock cycle, every output computes a dot product — you multiply each input by its weight at that row-column intersection and sum them up. That's basically what a crossbar does — it's a grid of wires where rows carry inputs, columns carry outputs, and the weights sit at the intersections.
+So about the design. The module takes four 8-bit signed inputs, a 4-by-4 weight matrix where every weight is either plus-one or minus-one, and produces four 10-bit signed outputs. Each clock cycle, every output computes a dot product, so you multiply each input by its weight at that row-column intersection and sum them up. That's basically what a crossbar does, which is a grid of wires where rows carry inputs, columns carry outputs, and the weights sit at the intersections.
 
-The module has three stages. The first is the weight register — a flip-flop that latches the full weight matrix when you pulse weight_load high. I packed the entire 4-by-4 matrix into one 16-bit flat register, where bit 4i plus j holds weight[i][j]. So for example, bit zero is weight[0][0], bit four is weight[1][0], and so on. The reason I chose a flat register is it loads the entire matrix in exactly one clock cycle instead of loading row by row.
+The module has three stages, so first it's the weight register, basically a flip-flop that latches the full weight matrix when you pulse weight_load high. Claude packed the entire 4-by-4 matrix into one 16-bit flat register, where bit 4i plus j holds weight[i][j]. So for example, bit zero is weight[0][0], bit four is weight[1][0], and so on, and the reason Claude went with a flat register is it loads the entire matrix in exactly one clock cycle instead of loading row by row.
 
-The second stage is the combinational MAC — just wires, no clock. It sign-extends the inputs to 10 bits and computes all four dot products simultaneously. And then the third stage is the output register, which latches the results on the next rising edge.
+The second stage is the combinational MAC, just wires, no clock, which sign-extends the inputs to 10 bits and computes all four dot products at the same time. And then the third stage is the output register, which latches the results on the next rising edge.
 
-For the output bit width — for example, worst case is four inputs at plus or minus 127, so 4 times 127 is roughly 508. And 10-bit signed goes up to 511, so basically that's just enough.
+As for the output bit width, for an example, worst case is four inputs at plus or minus 127, so 4 times 127 is roughly 508. And 10-bit signed goes up to 511, so basically that's just enough.
 
 ---
 
 ## The Testbench
 
-So about the testbench — I loaded the weight matrix from the assignment spec, which is plus-one, minus-one, plus-one, minus-one on row zero, plus-one, plus-one, minus-one, minus-one on row one, and so on. And then I applied inputs of 10, 20, 30, and 40.
+So about the testbench. Claude loaded the weight matrix from the assignment spec, which is plus-one, minus-one, plus-one, minus-one on row zero, plus-one, plus-one, minus-one, minus-one on row one, and so on, and then it applied inputs of 10, 20, 30, and 40.
 
-Before running the simulation I hand-calculated the expected outputs. For example, column zero — you get plus-ten from row 0, plus-twenty from row 1, and then minus-thirty and minus-forty from rows 2 and 3. And so that adds up to minus-40. I did the same for all four columns and got minus-40, zero, minus-20, and minus-20.
+Before running the simulation I hand-calculated the expected outputs, so for example, column zero, you get plus-ten from row 0, plus-twenty from row 1, and then minus-thirty and minus-forty from rows 2 and 3, and so that adds up to minus-40. I did the same for all four columns and got minus-40, zero, minus-20, and minus-20.
 
-One thing about the timing I had to get right — the output shows up two cycles after you assert weight_load, not one. Basically here's why: on the first rising edge after weight_load, the weight register latches the new weights. But the output register clocks on that same edge and it's still using the old weights. And so the correct output only appears one cycle later. The testbench explicitly waits two cycles before reading the outputs.
+One thing about the timing Claude had to get right, and the output shows up two cycles after you assert weight_load, not one. Basically here's why, so on the first rising edge after weight_load, the weight register latches the new weights, but the output register clocks on that same edge and it's still using the old weights. And so the correct output only appears one cycle later. The testbench explicitly waits two cycles before reading the outputs.
 
 ---
 
 ## The Simulation Results
 
-All four outputs matched exactly. Out-zero is minus-40, out-one is zero, out-two and out-three are both minus-20 — exactly what the hand calculation said. 4 out of 4. Thanks.
+All four outputs matched exactly. Out-zero is minus-40, out-one is zero, out-two and out-three are both minus-20, exactly what the hand calculation said. 4 out of 4. Thanks.
