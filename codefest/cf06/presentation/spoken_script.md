@@ -30,4 +30,4 @@ One thing about the timing Claude had to get right, and the output shows up two 
 
 ## The Simulation Results
 
-All four outputs matched exactly. Out-zero is minus-40, out-one is zero, out-two and out-three are both minus-20, exactly what the hand calculation said. 4 out of 4. Thanks.
+All four outputs match what I expected. Out-zero is minus-40, out-one is zero, out-two and out-three are both minus-20, exactly what my hand calculation said. So 4 out of 4, that's pretty good. Thanks.
