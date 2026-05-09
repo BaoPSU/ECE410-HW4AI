@@ -329,3 +329,36 @@ C off-chip writes = 4 elements × 1 write each = **4 writes**
 In output-stationary dataflow, the partial sum for each output element C[i][j] stays fixed inside its assigned PE while both the A row elements and B column elements stream through — so the **accumulated output values (partial sums) stay stationary** instead of the weights.
 
 ---
+
+## Correction Note — vs. Official Solution (r4)
+
+> Professor flagged that many students had the wrong input sequence. See `hw4ai_ece510_codefest05_spring26_solutions_r4.pdf`.
+
+### Input sequence
+
+My trace feeds inputs row-by-row alternating (row 0 gets one A element, then row 1 gets one, etc.). The official solution uses a **column-skewed** schedule:
+
+- Row 0 receives **column 0 of A**: A[0][0]=1 at cycle 1, then A[1][0]=3 at cycle 2
+- Row 1 receives **column 1 of A**: A[0][1]=2 at cycle 2 (skewed +1 cycle), then A[1][1]=4 at cycle 3
+
+Both rows can be active in the same cycle (cycle 2 has both). This is the standard diagonal skew used in weight-stationary systolic arrays to align partial sums with the correct input as they propagate down.
+
+Official trace (from solutions):
+
+| Cycle | In row 0 | In row 1 | PE[0][0] | PE[0][1] | PE[1][0] | PE[1][1] | Output |
+|:-----:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:------:|
+| 1 | A[0][0]=1 | — | 5 | — | — | — | — |
+| 2 | A[1][0]=3 | A[0][1]=2 | 15 | 6 | 5+2×7=19 | — | C[0][0]=19 |
+| 3 | — | A[1][1]=4 | — | 18 | — | 6+2×8=22 | C[1][0]=43, C[0][1]=22 |
+| 4 | — | — | — | — | — | 18+4×8=50 | C[1][1]=50 |
+
+My output (C = [[19,22],[43,50]]) is correct — the solution notes any trace producing the right C with consistent MAC arithmetic earns full credit.
+
+### Reuse count — B values also reuse 2×
+
+My 3(b) only counted A reuse. The solution also counts B:
+
+- **B values (weight-stationary):** each B[k][j] is used once per row of A streamed through. With M=2 rows of A, each B value is used 2 times → **reuse count = 2×**
+- **A values (streamed):** each A[i][k] propagates across N=2 PEs in its row → **reuse count = 2×**
+
+Both operands have 2× reuse. The key point for quiz 2: weight-stationary avoids re-fetching B from off-chip (reuse = M = 2), while output-stationary would avoid re-fetching C accumulations.
