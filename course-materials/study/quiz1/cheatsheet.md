@@ -63,6 +63,12 @@ AI < I*  → memory-bound  → fix: reduce DRAM traffic (tile, fuse, reuse)
 AI > I*  → compute-bound → fix: more arithmetic units / better ILP
 ```
 
+**Compute-bound but below the ceiling (efficiency gap):** kernel is not memory-limited but still not hitting peak compute. Fixes:
+- **ILP** — increase instruction-level parallelism so more ops issue per cycle
+- **Lower precision** — FP16/BF16/INT8 give 2–8× more throughput on tensor cores vs FP32; FP4 gives up to 16×
+- **Tensor cores** — use matrix-specific hardware if the op is GEMM-shaped
+- **SM occupancy** — more active warps let the scheduler hide stalls
+
 **Critical insight**: AI is a property of the **algorithm**, not the hardware. Hardware only moves the ridge point. You cannot make a kernel compute-bound by adding memory bandwidth — you can only lower the ridge point.
 
 **Multi-GPU roofline insight** (from lecture slides):
@@ -215,6 +221,8 @@ kernel<<<M, T>>>(args)   // M = blocks, T = threads/block
 | INT8 | 8 | Post-training quantization, inference |
 | FP4 (E2M1) | 4 | 16 distinct values; 2 exp bits, 1 mantissa bit |
 | NVFP4 | 4+scale | Micro-block scaled FP4 (16 values/block) |
+
+**Lower precision = lower energy per operation**: fewer bits to move through the data bus and compute units → less switching activity → less energy. FP4 uses ~8× less energy per op than FP32 in addition to the throughput gains.
 
 **Quantization types**:
 - **PTQ** (Post-Training Quantization): quantize already-trained model; simpler but less accurate
