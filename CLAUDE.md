@@ -163,6 +163,13 @@ This section tracks which slide files have been processed into notes or the chea
 | `w6_mon_recap.pdf` | Week 5 recap, Quiz 1 reminder, Google TPU 8 (8t vs 8i), week plan | `week06_notes.md` §0 |
 | `w6_mon_transformers_in_memory.pdf` | Algorithm acceleration (traditional + emerging tech tables), processor evolution, NFL theorem, TPU/systolic recap, transformer (what is it, learning, RLHF, recurrence, math ops, learned vs fixed, GPU mapping) | `week06_notes.md` §1–5 |
 
+### Week 7 — `course-materials/week07/slides/`
+
+| Slide file | Topics | Covered in |
+|-----------|--------|------------|
+| `w7_mon_recap.pdf` | Week 6 recap questions, inference vs training in systolic array (weight-stationary, 3 matmuls/layer for training), Quiz 1 results scatter | `week07_notes.md` §0 |
+| `w7_mon_neuromorphic_chips.pdf` | IMC fundamentals (energy of memory access, DRAM 2nJ vs INT4 mult 0.1pJ), crossbar primitive (Ohm + Kirchhoff for MVM), memory types (RRAM/PCM/STT-MRAM), sneak paths + solutions (diodes, 1T1R), IMC maturity (TRL 7–8), sparse MVM and sparse-on-crossbar (permute & pack, CSR format, 70% sparsity crossover), neuromorphic chips: characteristics + approaches, AER protocol, NoC, major chips (SpiNNaker, TrueNorth, NorthPole 10 axioms, BrainScaleS-2 AdEx, Loihi/Loihi 2 LIF + Lava, Akida TENNs), LLM on Loihi 2, current limitations, "AlexNet moment", feature maturation, autonomous vehicle applications | `week07_notes.md` §1–12 |
+
 ### What to do when new slides are uploaded
 
 1. Add a row to the table above for the new file
