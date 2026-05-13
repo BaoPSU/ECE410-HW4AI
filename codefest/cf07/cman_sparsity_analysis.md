@@ -16,34 +16,34 @@ With N = 512 and s = fraction of zeros.
 ### Dense MVM compute
 Each output element of y = W·x is one dot product of length N → N multiplies + N−1 adds ≈ **N MACs = 2N FLOPs**. For N output elements:
 
-$$\boxed{F_{\text{dense}} = 2N^2 \text{ FLOPs}}$$
+$$F_\text{dense} = 2N^2 \text{ FLOPs}$$
 
 ### Dense memory bytes
 N² FP32 weights × 4 B each:
 
-$$\boxed{B_{\text{dense}} = 4N^2 \text{ bytes}}$$
+$$B_\text{dense} = 4N^2 \text{ bytes}$$
 
 ### Sparse MVM compute (function of s)
 Skip every zero. Only (1 − s)·N² non-zeros remain; each contributes 1 MAC = 2 FLOPs:
 
-$$\boxed{F_{\text{sparse}}(s) = 2(1-s)N^2 \text{ FLOPs}}$$
+$$F_\text{sparse}(s) = 2(1-s)N^2 \text{ FLOPs}$$
 
 ### Sparse memory bytes (CSR, function of s)
 - `values`: 4·(1−s)·N²
 - `col_idx`: 4·(1−s)·N²
 - `row_ptr`: 4·(N+1)
 
-$$\boxed{B_{\text{sparse}}(s) = 8(1-s)N^2 + 4(N+1) \text{ bytes}}$$
+$$B_\text{sparse}(s) = 8(1-s)N^2 + 4(N+1) \text{ bytes}$$
 
 ---
 
 ## (b) FLOPs speedup and the s for 2× speedup
 
-$$\text{FLOPs speedup} = \frac{F_{\text{dense}}}{F_{\text{sparse}}(s)} = \frac{2N^2}{2(1-s)N^2} = \frac{1}{1-s}$$
+$$\text{Speedup}_\text{FLOPs} = \frac{F_\text{dense}}{F_\text{sparse}(s)} = \frac{2N^2}{2(1-s)N^2} = \frac{1}{1-s}$$
 
 For a 2× speedup:
 
-$$\frac{1}{1-s} = 2 \;\Longrightarrow\; 1-s = 0.5 \;\Longrightarrow\; \boxed{s = 0.5 \;(50\%)}$$
+$$\frac{1}{1-s} = 2 \implies 1-s = 0.5 \implies s = 0.5 \;(50\%)$$
 
 **Intuition**: speedup tracks the fraction of work skipped. Cut half the work → 2×. Cut 90% → 10×. The FLOPs speedup is purely a function of sparsity, independent of N.
 
@@ -58,7 +58,9 @@ $$8(1-s)N^2 + 4(N+1) = 4N^2$$
 Solving for s:
 
 $$8(1-s)N^2 = 4N^2 - 4(N+1)$$
+
 $$1 - s = \frac{4N^2 - 4(N+1)}{8N^2} = \frac{N^2 - N - 1}{2N^2}$$
+
 $$s = 1 - \frac{N^2 - N - 1}{2N^2} = \frac{N^2 + N + 1}{2N^2}$$
 
 For N = 512:
@@ -66,7 +68,7 @@ For N = 512:
 - N² + N + 1 = 262,657
 - 2N² = 524,288
 
-$$\boxed{s_{\text{breakeven}} = \frac{262{,}657}{524{,}288} \approx 0.5010 \;(50.10\%)}$$
+$$s_\text{breakeven} = \frac{262657}{524288} \approx 0.5010 \;(50.10\%)$$
 
 **Why ~50%?** CSR stores **2× the metadata per non-zero** (one INT32 col_idx for each FP32 value, so 8 B per NZ instead of 4 B). The row_ptr overhead of 4(N+1) ≈ 2 KB is negligible against the 1 MB dense matrix. So you must remove roughly half the elements before CSR's 2× per-element overhead is offset.
 
@@ -79,15 +81,17 @@ $$\boxed{s_{\text{breakeven}} = \frac{262{,}657}{524{,}288} \approx 0.5010 \;(50
 In a memory-bandwidth-limited system, execution time = bytes loaded / bandwidth (HW perfectly exploits sparsity → both compute and memory loads scale with (1 − s)).
 
 ### Dense time
-$$B_{\text{dense}} = 4N^2 = 4 \cdot 262{,}144 = 1{,}048{,}576 \text{ bytes} \approx 1.00 \text{ MB}$$
-$$T_{\text{dense}} = \frac{1{,}048{,}576}{320 \times 10^9} = 3.28 \text{ μs}$$
+$$B_\text{dense} = 4N^2 = 4 \cdot 262144 = 1{,}048{,}576 \text{ bytes} \approx 1.00 \text{ MB}$$
+
+$$T_\text{dense} = \frac{1048576}{320 \times 10^9} \approx 3.28 \text{ μs}$$
 
 ### Sparse time at s = 0.9
-$$B_{\text{sparse}}(0.9) = 8(0.1)(262{,}144) + 4(513) = 209{,}715.2 + 2{,}052 = 211{,}767.2 \text{ bytes} \approx 207 \text{ KB}$$
-$$T_{\text{sparse}} = \frac{211{,}767.2}{320 \times 10^9} = 662 \text{ ns}$$
+$$B_\text{sparse}(0.9) = 8(0.1)(262144) + 4(513) = 209715.2 + 2052 = 211767.2 \text{ bytes} \approx 207 \text{ KB}$$
+
+$$T_\text{sparse} = \frac{211767.2}{320 \times 10^9} \approx 662 \text{ ns}$$
 
 ### End-to-end speedup
-$$\text{Speedup} = \frac{T_{\text{dense}}}{T_{\text{sparse}}} = \frac{1{,}048{,}576}{211{,}767.2} \approx \boxed{4.95\times}$$
+$$\text{Speedup} = \frac{T_\text{dense}}{T_\text{sparse}} = \frac{1048576}{211767.2} \approx 4.95\times$$
 
 **Compare to the "ideal" FLOPs speedup at s = 0.9**: 1/(1 − 0.9) = **10×**. The memory-bound system only achieves ~5×, half of the ideal compute speedup. The gap comes from CSR's 2× per-element metadata overhead — every non-zero still costs 8 bytes to load instead of 4. The 5× shortfall is exactly what the breakeven analysis predicts: even at 90% sparse, you're loading roughly twice as much per non-zero as a dense layout would.
 
