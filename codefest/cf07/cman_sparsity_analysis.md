@@ -111,3 +111,9 @@ $$\text{Speedup} = \frac{T_\text{dense}}{T_\text{sparse}} = \frac{1048576}{21176
 | FLOPs speedup = 2× at | s = 0.5 | — |
 | Memory breakeven | s = (N² + N + 1)/(2N²) ≈ 0.501 | — |
 | End-to-end (memory-bound, 320 GB/s, s=0.9) | B_dense / B_sparse | **4.95×** |
+
+---
+
+## Handwritten work
+
+![Handwritten CMAN](cf07_cman_handwritten.jpeg)
