@@ -27,6 +27,12 @@ W6_QUIZ_PAGES = {
     11: "How to map a deep neural net on a systolic array",
 }
 
+W7_WED_QUIZ_PAGES = {
+    2: "CSR: Compressed Sparse Row — three arrays, how to read row i",
+    3: "CSR Example: 4×4 with 2 NZ per row (worked storage example)",
+    4: "Reconstructing A from CSR — walk-by-row_ptr trace on the 4×4",
+}
+
 W7_QUIZ_PAGES = {
     4:  "How can we accelerate an algorithm? (recap)",
     5:  "Emerging technology — master table",
@@ -49,8 +55,9 @@ W7_QUIZ_PAGES = {
     51: "How does the source know the destination? (routing table at source core)",
 }
 
-W6_PDF = ROOT / "week06" / "w6_mon_transformers_in_memory.pdf"
-W7_PDF = ROOT / "week07" / "slides" / "w7_mon_neuromorphic_chips.pdf"
+W6_PDF     = ROOT / "week06" / "w6_mon_transformers_in_memory.pdf"
+W7_PDF     = ROOT / "week07" / "slides" / "w7_mon_neuromorphic_chips.pdf"
+W7_WED_PDF = ROOT / "week07" / "slides" / "w7_wed_codefest_7.pdf"
 
 def extract(src: Path, pages_dict: dict, writer: PdfWriter, label: str):
     reader = PdfReader(str(src))
@@ -63,14 +70,18 @@ writer = PdfWriter()
 print("Extracting from week 6:")
 extract(W6_PDF, W6_QUIZ_PAGES, writer, "W6")
 
-print("\nExtracting from week 7:")
+print("\nExtracting from week 7 (Mon):")
 extract(W7_PDF, W7_QUIZ_PAGES, writer, "W7")
+
+print("\nExtracting from week 7 (Wed CF7 lecture):")
+extract(W7_WED_PDF, W7_WED_QUIZ_PAGES, writer, "W7-Wed")
 
 out = OUT_DIR / "quiz_marked_combined.pdf"
 with open(out, "wb") as f:
     writer.write(f)
 
-total = len(W6_QUIZ_PAGES) + len(W7_QUIZ_PAGES)
+total = len(W6_QUIZ_PAGES) + len(W7_QUIZ_PAGES) + len(W7_WED_QUIZ_PAGES)
 print(f"\nSaved {total} slides to {out}")
 print(f"  W6: {len(W6_QUIZ_PAGES)} slides")
-print(f"  W7: {len(W7_QUIZ_PAGES)} slides")
+print(f"  W7 (Mon): {len(W7_QUIZ_PAGES)} slides")
+print(f"  W7 (Wed): {len(W7_WED_QUIZ_PAGES)} slides")

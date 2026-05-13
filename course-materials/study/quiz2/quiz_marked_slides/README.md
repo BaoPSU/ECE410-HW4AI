@@ -1,6 +1,6 @@
 # QUIZ-Marked Slides — Combined PDF
 
-**File**: `quiz_marked_combined.pdf` — 25 slides total
+**File**: `quiz_marked_combined.pdf` — 28 slides total
 
 ## What's in here
 
@@ -42,6 +42,14 @@ Every slide in weeks 6 and 7 that has a red **QUIZ** sticker on it, extracted fr
 | 49 | Network-on-Chip (NoC) — 2D mesh |
 | 50 | Example: AER over NoC — concrete spike packet |
 | 51 | How does the source know the destination? (routing table at source core) |
+
+### From `week07/slides/w7_wed_codefest_7.pdf` (3 slides — CF7 lecture)
+
+| Source page | Topic |
+|:-----------:|-------|
+| 2 | CSR: Compressed Sparse Row — three arrays, how to read row i |
+| 3 | CSR Example: 4×4 with 2 NZ per row (worked storage example) |
+| 4 | Reconstructing A from CSR — walk-by-row_ptr trace on the 4×4 |
 
 ## How to regenerate
 

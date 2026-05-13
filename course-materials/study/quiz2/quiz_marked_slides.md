@@ -207,6 +207,59 @@ Spike A→E:    DEST = E (2,1)
 
 Sparse + asynchronous: routers fire only when a spike occurs → low average power, high peak BW. Used in **IBM TrueNorth, Intel Loihi, SpiNNaker**.
 
+### Q7.15 — CSR (Compressed Sparse Row) — from CF7 lecture (Wed)
+
+**Three arrays**:
+- `values[]` — the non-zeros, in row-major order (one FP32 each)
+- `col_idx[]` — column index of each non-zero (one INT32 each, length = nnz)
+- `row_ptr[]` — bookmark into the k-indexed arrays; length **N+1**, with the last entry = nnz (sentinel)
+
+**How to read row i**: slice `row_ptr[i] .. row_ptr[i+1]` gives row i's non-zeros.
+- Row 1 example: `row_ptr[1..2] = [1,2]` → one NZ at k=1: `values[1]=8` at `col_idx[1]=2`
+
+**Memory cost**: ~2·nnz + N values instead of N². Walk rows in order → ideal for y = A·x.
+
+**vs COO** (Coordinate format): COO stores (row, col, val) for every NZ = 3·nnz entries. CSR keeps `col_idx` explicit but **run-length-encodes the row coordinate** into `row_ptr` (N+1 entries, not nnz).
+
+### Q7.16 — CSR worked example: 4×4 matrix with 2 NZ per row
+
+Matrix A (8 non-zeros total):
+```
+     j=0  j=1  j=2  j=3
+i=0   5    0    0    3
+i=1   0    8    2    0
+i=2   6    0    0    9
+i=3   0    1    0    7
+```
+
+CSR arrays:
+- `values  = [5, 3, 8, 2, 6, 9, 1, 7]`  (k=0..7)
+- `col_idx = [0, 3, 1, 2, 0, 3, 1, 3]`  (column of each NZ)
+- `row_ptr = [0, 2, 4, 6, 8]`           (where each row starts in `values`, sentinel = 8)
+
+**How to read row 2**: `row_ptr[2..3] = [4,6]` → NZs at k=4, 5. `values[4]=6` at `col_idx[4]=0`; `values[5]=9` at `col_idx[5]=3`.
+
+**Storage**: 8 + 8 + 5 = 21 ints vs 16 for dense. **CSR wins as N grows** (overhead is O(N); savings are O(N²)).
+
+> **`row_ptr[i]` answers: "what value of k does row i start at?"** It's a bookmark into the k-indexed arrays.
+
+### Q7.17 — Reconstructing A from CSR
+
+Algorithm:
+```
+for i in 0..N-1:
+    for k in row_ptr[i] .. row_ptr[i+1]-1:
+        A[i][col_idx[k]] = values[k]
+```
+
+Trace on the 4×4 example:
+- **i=0**: `row_ptr[0..1] = [0,2]` → k=0,1 → `A[0][0]=5`, `A[0][3]=3`
+- **i=1**: `row_ptr[1..2] = [2,4]` → k=2,3 → `A[1][1]=8`, `A[1][2]=2`
+- **i=2**: `row_ptr[2..3] = [4,6]` → k=4,5 → `A[2][0]=6`, `A[2][3]=9`
+- **i=3**: `row_ptr[3..4] = [6,8]` → k=6,7 → `A[3][1]=1`, `A[3][3]=7`
+
+All 8 NZs placed; A fully reconstructed.
+
 ### Q7.14 — How does the source know the destination?
 **It doesn't — a routing table at the source core looks up the fan-out.**
 
