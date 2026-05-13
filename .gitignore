@@ -10,3 +10,7 @@ mac_b_sim
 mac_correct_sim
 sim_a
 sim_b
+crossbar_sim
+
+# OpenLane run artifacts (~1 GB per run); keep only extracted reports
+codefest/cf*/hdl/runs/

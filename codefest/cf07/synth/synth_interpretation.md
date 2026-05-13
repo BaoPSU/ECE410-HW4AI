@@ -1,47 +1,45 @@
 # CF07 — OpenLane 2 Synthesis Interpretation
 
-**Target:** `synth_top.sv` (K-Means distance core, Option A from CF07 spec)
+**Target:** `synth_top.v` (K-Means distance core, Option A — converted from `kmeans_dist_core.sv` to Verilog-2005 for Yosys default frontend)
+**PDK:** sky130_fd_sc_hd
+**Tool:** OpenLane 2.3.10, run via Docker
+**Run ID:** RUN_2026-05-13_22-00-19
 **Bao Nguyen — ECE 410/510 Spring 2026**
-
-> **Status: placeholder.** OpenLane 2 has not been run yet — every `<FILL IN>` below must be replaced with the actual number from the synthesis reports before this is a real deliverable.
 
 ---
 
 ## (a) Clock period and worst-case slack
 
-I ran synthesis at a target clock period of **`<FILL IN ns>`**. The reports show a worst-case slack (WNS) of **`<FILL IN ns>`**, with total negative slack TNS = **`<FILL IN ns>`** across **`<FILL IN>`** violating endpoints.
+I ran synthesis at a target clock period of **10.0 ns** (100 MHz). The post-route STA reports a worst-case setup slack (WNS) of **−31.53 ns** with total negative slack TNS = **−662.68 ns** across many violating endpoints — the design **fails timing badly** at this target.
 
-[If WNS is negative]: the design failed timing at this target. The critical path needs to be either pipelined or relaxed to a slower clock.
-[If WNS is positive]: the design has **`<FILL IN ns>`** of headroom; I could push the clock to roughly **`<FILL IN MHz>`**.
+Critical path delay ≈ 10.0 + 31.5 = **~41.5 ns**, so the design will only close timing at a clock period of ~42 ns (≈ 24 MHz) without pipelining. One sample path that does meet (slack +7.33 ns) is a short input-to-DFF route, but the longest combinational path through the 16-centroid argmin tree is the limiting factor.
 
 ## (b) Critical path
 
-The dominant timing path runs from `<FILL IN source register>` to `<FILL IN sink register>`. Dominant cell types along the path: **`<FILL IN — e.g. AND, OAI21, FA1>`**. Logical levels: **`<FILL IN>`**.
-
-For the K-Means core, this is most likely the combinational distance + argmin tree: 3 squared-difference subtractions per centroid, summed, then min-reduced across all 16 centroids. The width of the argmin comparator tree (log₂(K) = 4 levels deep) is the expected critical path.
+The dominant timing path runs from the **input port `centroids_flat`** through the **48 squared-difference compute paths** (K=16 × D=3 absolute-difference + squarer + 18-bit accumulator) and into the **K=16-way argmin comparator tree** ending at the `min_dist` / `label` output registers. Dominant cell types along the path: `xnor2_2` (1,882 instances), `or2_2` (1,597), `and2_2` (1,078), `xor2_2` (922), and `a21oi_2` (766) — the multiplier and adder-tree cells that build up each (pixel−centroid)² term and the 16-way reduction. There are 2 unconstrained endpoints (`min_dist[18]` and `min_dist[19]`), the two upper accumulator bits that the math can never assert (max distance = 3·255² = 195,075 < 2¹⁸).
 
 ## (c) Total cell area and top three contributors
 
-Total cell area: **`<FILL IN µm²>`**. Top three contributors by area or instance count:
+Total chip area (Yosys gate-area estimate): **155,300 µm²** (~0.155 mm²) across **17,029 cells**. Only 489 µm² (**0.32%**) is sequential — almost everything is combinational logic for the parallel dist+argmin tree.
 
-| Rank | Cell / module | Area or count | Why |
-|------|---------------|---------------|-----|
-| 1 | `<FILL IN>` | `<FILL IN>` | `<FILL IN>` |
-| 2 | `<FILL IN>` | `<FILL IN>` | `<FILL IN>` |
-| 3 | `<FILL IN>` | `<FILL IN>` | `<FILL IN>` |
+| Rank | Cell type | Instance count | What it builds |
+|------|-----------|----------------|----------------|
+| 1 | `xnor2_2` | 1,882 | XOR/XNOR carry-save adders inside the 48 squared-difference units and the 16-way subtractor in argmin |
+| 2 | `or2_2` | 1,597 | OR-tree carry propagation across the 20-bit accumulator |
+| 3 | `and2_2` | 1,078 | AND-gate reductions inside the (a≥b) comparators and partial-product squarers |
 
-Expected leader: the **K × D = 16 × 3 = 48 squared-difference multipliers** plus the **K-wide argmin tree**. The flat `centroids[0:K*D-1]` and `pixel[0:D-1]` arrays generate K·D = 48 subtractor-and-square paths; this is where most of the area should live.
+This matches expectations — for K=16, D=3 with 8-bit inputs, the synthesis builds 48 parallel subtractor + squarer paths feeding into 16 20-bit accumulators that then reduce through a 4-level argmin tree.
 
-## (d) Failed constraints, hold violations, warnings
+## (d) Failed constraints and warnings
 
-- Setup violations: **`<FILL IN count>`** — `<FILL IN where>`
-- Hold violations: **`<FILL IN count>`** — `<FILL IN where>`
-- Synthesis warnings worth investigating:
-  - `<FILL IN — e.g. inferred latch, multi-driver net, unconnected port>`
-  - `<FILL IN>`
+- **Setup violations**: many — TNS = −662.68 ns indicates ~21 endpoints failed on average by ~31 ns each.
+- **Hold violations**: none flagged in post-PnR.
+- **Max fanout violations**: **27** on internal nets — typically the broadcast of the input bus to 16 parallel compute lanes.
+- **Unconstrained endpoints**: 2 (`min_dist[18]`, `min_dist[19]`) — the two MSBs of the distance output that never assert because 3·255² < 2¹⁸. Trim the accumulator to `DIST_W=18` for M3.
+- **Slew/cap violations**: 0 / 0.
 
-[Be specific: tie each warning to a line number in `synth_top.sv` or a specific module.]
+The flow ran through synthesis → floorplan → placement → CTS → routing successfully (43 stages out of ~63), then aborted at the very last KLayout DRC stage with a `FileNotFoundError` (PDK/tool-side, not RTL).
 
 ---
 
-*Word target: 200–300 words. Replace placeholders with real numbers, then trim or expand prose around them.*
+*Bottom line: synthesis succeeded, but the fully-unrolled 16-way parallel distance+argmin needs either a pipeline stage between distance compute and argmin reduce, or a slower clock target around 24 MHz. M3 plan covers the pipelining option, which keeps single-cycle throughput while cutting critical path ~3×.*

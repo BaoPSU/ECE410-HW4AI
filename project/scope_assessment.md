@@ -22,21 +22,29 @@ K-Means image color quantization accelerator with a near-memory PIM compute core
 
 I chose **Option A** (own project core). `codefest/cf07/hdl/synth_top.sv` is a copy of `project/hdl/kmeans_dist_core.sv` for OpenLane to operate on.
 
-## Synthesis result (placeholder — to be filled in after running OpenLane)
+## Synthesis result (from RUN_2026-05-13_22-00-19)
 
-- Target clock period: `<FILL IN ns>`
-- Achieved WNS: `<FILL IN ns>`
-- Total cell area: `<FILL IN µm²>`
-- Instance count: `<FILL IN>`
+- Target clock period: **10.0 ns** (100 MHz)
+- Achieved WNS: **−31.53 ns** → critical path ~41.5 ns (would close at ~24 MHz)
+- TNS: **−662.68 ns** across ~21 violating endpoints
+- Total cell area (Yosys): **155,300 µm²** (~0.155 mm²)
+- Instance count: **17,029 cells** (only 0.32% sequential — design is almost fully combinational)
+- Top cell types: xnor2 (1,882), or2 (1,597), and2 (1,078), xor2 (922) — adder-tree dominated
+- 27 fanout violations on input broadcast nets
+- 2 unconstrained endpoints (`min_dist[18..19]`) — MSBs that math can never assert
 
 ## Scope decision
 
-> *Confirm or adjust here once the synthesis numbers are in.*
+**My hypothesis was wrong.** I expected the design to close 10 ns timing without pipelining. The fully-unrolled 16-centroid argmin reduce + 48 parallel squared-difference paths blow past the budget by 3×.
 
-**Working hypothesis** (pending real numbers): the design is small enough (K=16, D=3, 20-bit accumulators) that OpenLane should close timing comfortably at a ~10 ns clock period without pipelining. If WNS comes back negative, the argmin tree across 16 centroids is the likely culprit, and pipelining one register stage between distance compute and argmin reduce should fix it.
+**Scope adjustment for M3**:
+- Add **one pipeline register** between `kdist[k]` accumulators and the argmin tree → cuts critical path roughly in half
+- **Drop `DIST_W` from 20 → 18 bits** (synthesis flagged the unused MSBs)
+- **Throughput unchanged** — still 1 sample per cycle in steady state, with a 1-cycle additional latency penalty
+- **Clock target stays at 10 ns** (matches PIM chiplet I/O budget from M1)
 
-**Scope remains unchanged from M2**: integer distance + argmin core, AXI4-Lite control, target a PIM chiplet with 16 TB/s HBM3 bandwidth via UCIe. No new features added; CF07 is purely about confronting the actual synthesis numbers.
+**Scope unchanged from M2**: integer distance + argmin core, AXI4-Lite control, near-memory PIM target with 16 TB/s HBM3 bandwidth via UCIe.
 
 ## M3 plan (one line)
 
-Run the same OpenLane flow at the project level, integrate `axil_slave.sv` on top, target the chiplet I/O constraints. Report results in M3 due May 24.
+Pipeline + accumulator-width fix, re-synthesize, integrate `axil_slave.sv` on top, confirm timing closes at 100 MHz with positive slack. Due May 24.
