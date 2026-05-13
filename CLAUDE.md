@@ -169,6 +169,7 @@ This section tracks which slide files have been processed into notes or the chea
 |-----------|--------|------------|
 | `w7_mon_recap.pdf` | Week 6 recap questions, inference vs training in systolic array (weight-stationary, 3 matmuls/layer for training), Quiz 1 results scatter | `week07_notes.md` §0 |
 | `w7_mon_neuromorphic_chips.pdf` | IMC fundamentals (energy of memory access, DRAM 2nJ vs INT4 mult 0.1pJ), crossbar primitive (Ohm + Kirchhoff for MVM), memory types (RRAM/PCM/STT-MRAM), sneak paths + solutions (diodes, 1T1R), IMC maturity (TRL 7–8), sparse MVM and sparse-on-crossbar (permute & pack, CSR format, 70% sparsity crossover), neuromorphic chips: characteristics + approaches, AER protocol, NoC, major chips (SpiNNaker, TrueNorth, NorthPole 10 axioms, BrainScaleS-2 AdEx, Loihi/Loihi 2 LIF + Lava, Akida TENNs), LLM on Loihi 2, current limitations, "AlexNet moment", feature maturation, autonomous vehicle applications | `week07_notes.md` §1–12 |
+| `w7_wed_codefest_7.pdf` | CF7 lecture: CSR Compressed Sparse Row (values/col_idx/row_ptr), CSR 4×4 example with 2 NZ per row (worked storage), reconstructing A from CSR (walk-by-row_ptr trace), ASIC design flow (front-end / back-end), OpenLane 2 tools overview. 3 QUIZ-marked slides (CSR fundamentals + 4×4 example + reconstruction). | `week07_notes.md` §4 (CSR already covered); `study/quiz2/quiz_marked_slides.md` §Q7.15–Q7.17 |
 
 ### What to do when new slides are uploaded
 
