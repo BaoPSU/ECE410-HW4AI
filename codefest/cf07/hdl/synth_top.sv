@@ -1,5 +1,6 @@
-// kmeans_dist_core.sv
-// Synthesizable K-Means squared-distance compute core
+// synth_top.v
+// Verilog-2005 port-compatible version of kmeans_dist_core.sv
+// Converted from SystemVerilog for OpenLane 2 / yosys default frontend.
 // ECE 410/510 Spring 2026 - Bao Nguyen
 //
 // Computes kdist[k] = sum_d (pixel[d] - centroid[k][d])^2 for all K centroids
@@ -12,45 +13,64 @@
 `timescale 1ns/1ps
 
 module kmeans_dist_core #(
-    parameter K       = 16,  // number of centroids
-    parameter D       = 3,   // pixel dimensions (RGB)
-    parameter DATA_W  = 8,   // bits per channel (unsigned, 0-255)
-    parameter DIST_W  = 20,  // bits for distance accumulator (>=18 for 8-bit RGB)
-    parameter LABEL_W = 4    // bits for label output (ceil(log2(K)) = 4 for K=16)
+    parameter K       = 16,
+    parameter D       = 3,
+    parameter DATA_W  = 8,
+    parameter DIST_W  = 20,
+    parameter LABEL_W = 4
 )(
-    input  logic                    clk,
-    input  logic                    rst_n,   // active-low synchronous reset
-    input  logic                    start,   // pulse high one cycle to begin
+    input  wire                       clk,
+    input  wire                       rst_n,
+    input  wire                       start,
 
-    // Flat 1D unpacked arrays; pixel[d], centroids[k*D + d]
-    input  logic [DATA_W-1:0]       pixel     [0:D-1],
-    input  logic [DATA_W-1:0]       centroids [0:K*D-1],
+    // Packed flat arrays (port-compatible with Verilog-2005)
+    // pixel[d]        = pixel_flat    [d*DATA_W +: DATA_W]
+    // centroids[k][d] = centroids_flat[(k*D + d)*DATA_W +: DATA_W]
+    input  wire [D*DATA_W-1:0]        pixel_flat,
+    input  wire [K*D*DATA_W-1:0]      centroids_flat,
 
-    output logic                    done,
-    output logic [DIST_W-1:0]       min_dist,
-    output logic [LABEL_W-1:0]      label
+    output reg                        done,
+    output reg  [DIST_W-1:0]          min_dist,
+    output reg  [LABEL_W-1:0]         label
 );
-    // Note: 'dist' is a reserved SV keyword; all distance signals use 'kdist' prefix.
 
-    localparam SQ_W  = 2 * DATA_W;     // bits for squared difference (DATA_W=8 -> 16)
-    localparam PAD_W = DIST_W - SQ_W;  // zero-padding bits for accumulator extension
+    localparam SQ_W  = 2 * DATA_W;
+    localparam PAD_W = DIST_W - SQ_W;
 
-    // -- Intermediate combinational signals -----------------------------------
-    logic [DATA_W-1:0]  abs_diff  [0:K-1][0:D-1];
-    logic [SQ_W-1:0]    sq_diff   [0:K-1][0:D-1];
-    logic [DIST_W-1:0]  kdist     [0:K-1];
+    // -- Internal arrays (unpacked allowed inside the module body) ------------
+    reg [DATA_W-1:0] abs_diff [0:K-1][0:D-1];
+    reg [SQ_W-1:0]   sq_diff  [0:K-1][0:D-1];
+    reg [DIST_W-1:0] kdist    [0:K-1];
 
-    logic [DIST_W-1:0]  comb_min;
-    logic [LABEL_W-1:0] comb_lbl;
+    reg [DIST_W-1:0]  comb_min;
+    reg [LABEL_W-1:0] comb_lbl;
 
-    // -- Combinational: abs diff, square, accumulate, argmin -----------------
-    always_comb begin
-        for (int k = 0; k < K; k++) begin
+    // Bit-slice helpers
+    wire [DATA_W-1:0] pix_d [0:D-1];
+    wire [DATA_W-1:0] cen_kd [0:K-1][0:D-1];
+
+    genvar gd, gk;
+    generate
+        for (gd = 0; gd < D; gd = gd + 1) begin : G_PIX
+            assign pix_d[gd] = pixel_flat[gd*DATA_W +: DATA_W];
+        end
+        for (gk = 0; gk < K; gk = gk + 1) begin : G_CEN_K
+            for (gd = 0; gd < D; gd = gd + 1) begin : G_CEN_D
+                assign cen_kd[gk][gd] =
+                    centroids_flat[(gk*D + gd)*DATA_W +: DATA_W];
+            end
+        end
+    endgenerate
+
+    // -- Combinational distance + argmin --------------------------------------
+    integer k, d;
+    always @(*) begin
+        for (k = 0; k < K; k = k + 1) begin
             kdist[k] = {DIST_W{1'b0}};
-            for (int d = 0; d < D; d++) begin
-                abs_diff[k][d] = (pixel[d] >= centroids[k*D + d])
-                               ? pixel[d] - centroids[k*D + d]
-                               : centroids[k*D + d] - pixel[d];
+            for (d = 0; d < D; d = d + 1) begin
+                abs_diff[k][d] = (pix_d[d] >= cen_kd[k][d])
+                               ? (pix_d[d] - cen_kd[k][d])
+                               : (cen_kd[k][d] - pix_d[d]);
                 sq_diff[k][d]  = abs_diff[k][d] * abs_diff[k][d];
                 kdist[k]       = kdist[k] + {{PAD_W{1'b0}}, sq_diff[k][d]};
             end
@@ -58,7 +78,7 @@ module kmeans_dist_core #(
 
         comb_min = kdist[0];
         comb_lbl = {LABEL_W{1'b0}};
-        for (int k = 1; k < K; k++) begin
+        for (k = 1; k < K; k = k + 1) begin
             if (kdist[k] < comb_min) begin
                 comb_min = kdist[k];
                 comb_lbl = k[LABEL_W-1:0];
@@ -66,8 +86,8 @@ module kmeans_dist_core #(
         end
     end
 
-    // -- Sequential: register outputs with 1-cycle latency -------------------
-    always_ff @(posedge clk) begin
+    // -- Sequential output register -------------------------------------------
+    always @(posedge clk) begin
         if (!rst_n) begin
             done     <= 1'b0;
             min_dist <= {DIST_W{1'b0}};
