@@ -95,21 +95,23 @@ $$\text{Speedup} = \frac{T_\text{dense}}{T_\text{sparse}} = \frac{1048576}{21176
 
 ### Algebraic explanation of the 5× vs 10× gap
 
-Since bandwidth cancels, the memory-bound speedup is just the byte ratio:
+Since bandwidth cancels, the memory-bound speedup is **exactly**:
 
-$$\frac{B_\text{dense}}{B_\text{sparse}(s)} = \frac{4N^2}{8(1-s)N^2 + 4(N+1)}$$
+$$\frac{B_\text{dense}}{B_\text{sparse}(s)} = \frac{4N^2}{8(1-s)N^2 + 4(N+1)} \tag{exact}$$
 
-At high sparsity, the row_ptr overhead 4(N+1) is negligible compared to 8(1−s)N² (for N=512, s=0.9: 2,052 B vs 209,715 B → <1%). Drop it:
+For large N at high sparsity, the row_ptr overhead 4(N+1) becomes small compared to 8(1−s)N². Concretely at N=512, s=0.9: 2,052 B vs 209,715 B → row_ptr is <1% of total sparse bytes. **In this asymptotic regime**, we can approximate:
 
-$$\frac{B_\text{dense}}{B_\text{sparse}(s)} \approx \frac{4N^2}{8(1-s)N^2} = \frac{4}{8(1-s)} = \frac{1}{2(1-s)}$$
+$$\frac{B_\text{dense}}{B_\text{sparse}(s)} \approx \frac{4N^2}{8(1-s)N^2} = \frac{1}{2(1-s)} \tag{large-N, high-s}$$
 
-Compare to the FLOPs speedup 1/(1−s):
+This is **not exact** — it's an asymptotic simplification valid when 4(N+1) ≪ 8(1−s)N², i.e., when (1−s)N ≫ 1/2 (large matrix and/or moderate-to-high sparsity). At low sparsity or small N, the row_ptr term must be retained.
 
-$$\text{Memory speedup} = \frac{1}{2(1-s)} = \frac{1}{2} \cdot \underbrace{\frac{1}{1-s}}_{\text{FLOPs speedup}}$$
+Comparing the approximation to the FLOPs speedup 1/(1−s):
+
+$$\text{Memory speedup} \approx \frac{1}{2(1-s)} = \frac{1}{2} \cdot \underbrace{\frac{1}{1-s}}_{\text{FLOPs speedup}}$$
 
 The **factor of 1/2** is 4/8 — dense's 4 B/element divided by CSR's 8 B/non-zero (4 B value + 4 B col_idx). This is the **same 2× per-element overhead** that puts the memory breakeven at s ≈ 1/2: you need to delete half the elements just to offset CSR's doubled cost per kept element.
 
-At s = 0.9: FLOPs speedup = 10×, memory speedup = 5× — exactly half. The 5× shortfall isn't a coincidence; it's the algebraic fingerprint of CSR's `col_idx` overhead, visible directly in the denominator of the byte ratio.
+At s = 0.9, N = 512: exact memory speedup = 4.95× (from the unsimplified formula above); asymptotic prediction = 5.00×; FLOPs speedup = 10×. The exact and approximate agree to within ~1% because the row_ptr term really is negligible at these parameters — but the **5× / 10× gap is the algebraic fingerprint of CSR's `col_idx` overhead**, visible directly in the denominator of the byte ratio.
 
 **Lesson for the project**: for memory-bound K-Means in CSR-style storage, getting close to the ideal compute speedup requires either (1) structured sparsity that compresses the indexing, (2) very high sparsity where the row_ptr overhead amortizes well, or (3) bit-packing the indices.
 
