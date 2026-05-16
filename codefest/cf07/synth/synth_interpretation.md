@@ -5,7 +5,9 @@
 **Bao Nguyen — ECE 410/510 Spring 2026**
 
 ## (a) Clock period and slack
-Target clock period **10.0 ns** (100 MHz). Post-route STA reports **WNS = −31.53 ns** and **TNS = −662.68 ns** across **22 violating endpoints**. The critical path is ~41.5 ns, so the current RTL only closes timing near 24 MHz without pipelining.
+Target clock period **10.0 ns** (100 MHz). Post-route STA reports **WNS = −31.53 ns** and **TNS = −662.68 ns** across **22 violating endpoints**.
+
+Negative slack means the critical path is longer than the target period by |WNS|, so actual path delay = 10.0 ns + 31.53 ns = **41.53 ns**. For timing closure without pipelining, the clock period must be at least 41.53 ns, i.e., max frequency ≈ 1 / 41.53 ns ≈ **24 MHz**.
 
 ## (b) Critical path
 The dominant path runs from `centroids_flat` input → 48 parallel squared-difference units (K=16 × D=3 absolute-difference + squarer + 18-bit accumulator) → 16-way argmin comparator tree → `min_dist` / `label` output registers. Dominant cell types along the path: `xnor2_2` (1,882 instances), `or2_2` (1,597), `and2_2` (1,078), `xor2_2` (922). The argmin reduce is 4 levels deep — too long to fit in one cycle alongside the distance computation.
