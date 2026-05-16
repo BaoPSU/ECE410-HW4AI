@@ -109,7 +109,16 @@ Comparing the approximation to the FLOPs speedup 1/(1−s):
 
 $$\text{Memory speedup} \approx \frac{1}{2(1-s)} = \frac{1}{2} \cdot \underbrace{\frac{1}{1-s}}_{\text{FLOPs speedup}}$$
 
-The **factor of 1/2** is 4/8 — dense's 4 B/element divided by CSR's 8 B/non-zero (4 B value + 4 B col_idx). This is the **same 2× per-element overhead** that puts the memory breakeven at s ≈ 1/2: you need to delete half the elements just to offset CSR's doubled cost per kept element.
+**Why the per-element cost ratio appears in front of 1/(1−s).** Both speedups have the same structure: total dense work divided by sparse work that scales with (1−s) non-zeros. The only thing that changes between FLOPs and memory is the per-element cost.
+
+| | Dense cost per element | Sparse cost per NZ | Cost ratio | Speedup |
+|---|---|---|---|---|
+| **FLOPs** | 2 FLOPs (one MAC) | 2 FLOPs (one MAC) | 2/2 = **1** | 1 · 1/(1−s) |
+| **Memory** | 4 B (one FP32) | 8 B (FP32 + INT32 col_idx) | 4/8 = **1/2** | (1/2) · 1/(1−s) |
+
+The (1−s) factor comes from the same place in both — fraction of cells you keep. The per-element cost ratio is the leading coefficient. **FLOPs has no penalty because a MAC is a MAC**: storing the matrix as sparse doesn't change the per-element compute cost. **Memory has a 1/2 penalty because every kept non-zero now carries an INT32 column index** alongside its FP32 value, doubling the per-element byte cost.
+
+That same 4/8 = 1/2 factor is what puts the memory breakeven at s ≈ 1/2: you need to delete half the elements just to offset CSR's doubled cost per kept element.
 
 At s = 0.9, N = 512: exact memory speedup = 4.95× (from the unsimplified formula above); asymptotic prediction = 5.00×; FLOPs speedup = 10×. The exact and approximate agree to within ~1% because the row_ptr term really is negligible at these parameters — but the **5× / 10× gap is the algebraic fingerprint of CSR's `col_idx` overhead**, visible directly in the denominator of the byte ratio.
 
