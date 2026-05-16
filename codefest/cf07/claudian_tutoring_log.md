@@ -1,190 +1,113 @@
-# CF07 CMAN — Claudian Tutoring Session Log
+# CF07 — Claudian Tutoring Session Log
 
 **ECE 410/510 Spring 2026 — Bao Nguyen**
-*Socratic walk-through of the Sparsity Breakeven Analysis with Claudian (TA bot). All numerical answers were derived by me; Claudian asked guiding questions only.*
+*Sessions with Claudian (course TA bot, Socratic style). Math/answers derived by me; Claudian asked guiding questions only.*
 
 ---
 
-## Opening
+## Session 1 — CMAN Part 1 (Building up the four expressions)
 
-**Claudian:** Hi! I'm Claudian, your friendly TA for Codefest 7. I'm here to help you work through this codefest — but I'll guide you with questions rather than giving away answers. What are you working on, and where are you getting stuck?
+**Claudian:** What are you working on, and where are you getting stuck?
 
-**Me:** So for part 1a, my understanding is we have a total of MAC = N×N = N², each MAC is 2 FLOPs, so then F_dense = 2N²?
+**Me:** For part 1a, my understanding is we have a total of MAC = N×N = N², each MAC is 2 FLOPs, so then F_dense = 2N²?
 
-**Claudian:** That's exactly right! 🎉
-- An N×N weight matrix has N² elements
-- Each element requires one MAC (multiply + accumulate)
-- Each MAC = 2 FLOPs (one multiply, one add)
-- So Dense FLOPs = 2N²
+**Claudian:** That's exactly right! Working numerically with N=512?
 
-With N=512, what number does that give you?
+**Me:** 524.29E3? → after coaching → 524,288 ✓
 
-**Me:** 524.29E3?
+**Answer 1(a):** F_dense = 2N² = 524,288 FLOPs
 
-**Claudian:** Close! 2 × 512² = 2 × ? What is 512² first?
+**Me:** For (b) I got 1,048,576. — that's 4 × 512² = 4·N². ✓
 
-**Me:** 262.14 × 10³
+**Answer 1(b):** B_dense = 4N² = 1,048,576 bytes (1 MB)
 
-**Claudian:** Exactly! 512² = 262,144. So then 2 × 262,144 = ?
+**Claudian (1c):** If s is the fraction zero, how many non-zeros in N²?
 
-**Me:** 524,290
+**Me:** N×s? → corrected → (1−s)·N²; for s=0.9 that's 10%.
 
-**Claudian:** Almost — watch your arithmetic. (Hint: 2 × 262,000 = 524,000, and 2 × 144 = 288...)
+Each non-zero is 2 FLOPs → **F_sparse(s) = 2N²(1−s).**
 
-**Me:** 524,288?
+**Claudian (1d):** Three CSR arrays. Bytes each? — values 4B, col_idx 4B, row_ptr 4B per entry × (N+1).
 
-**Claudian:** ✓ So part 1(a): **Dense compute = 2N² = 524,288 FLOPs** for N=512.
+**Me:** values + col_idx = 8N²(1−s); add row_ptr → **B_sparse(s) = 8N²(1−s) + 4(N+1).**
+
+Sanity check at s=0: B_sparse > B_dense — CSR adds overhead, only saves memory at high s.
 
 ---
 
-## Part 1(b) — Dense memory bytes
+## Session 2 — CMAN Part 2 (Speedup ratio)
 
-**Me:** For b I got 1,048,576.
+**Me:** Part 2: 1a / 1c.
 
-**Claudian:** Perfect! 4 × 512² = 4 × 262,144 = 1,048,576 bytes (exactly 1 MB).
+**Claudian:** Simplify 2N² / [2N²(1−s)].
 
-**Answer:** $B_\text{dense} = 4N^2 = 1{,}048{,}576$ bytes (1 MB)
-
----
-
-## Part 1(c) — Sparse compute (function of s)
-
-**Claudian:** In the dense case, every element of the N×N matrix gets a MAC. In the sparse case, a fraction s of weights are zero. If hardware skips zero MACs, how many non-zero elements are there in terms of N and s?
-
-**Me:** What N and s?
-
-**Claudian:**
-- N = 512 — the matrix is N×N
-- s = sparsity, the fraction of weights that are zero (s=0.9 → 90% zero)
-
-So if the total is N², and a fraction s are zero, how many are non-zero?
-
-**Me:** So it's N×s?
-
-**Claudian:** Not quite. If s is the fraction that ARE zero, what fraction are NON-zero? Then multiply that by N².
-
-**Me:** So if I multiply the fraction that are zero by N², that's the fraction of non-zeros?
-
-**Claudian:** Almost — but careful! You want the non-zero fraction. If s = 0.9 (90% zero), what percentage are non-zero?
-
-**Me:** 10%.
-
-**Claudian:** Exactly. So the non-zero fraction is **(1 − s)**, and the count is N²(1−s).
-
-Each non-zero requires 1 MAC = 2 FLOPs. So what's the sparse compute expression?
-
-**Me:** So it's 2N²(1−s).
-
-**Claudian:** Perfect! 🎉
-
-**Answer:** $F_\text{sparse}(s) = 2N^2(1-s)$ FLOPs
-
-Sanity:
-- s = 0 → 2N² (matches dense ✓)
-- s = 0.9 → 10% of dense work ✓
+**Me:** Initially: s − 1/2 (wrong). After cancellation: 1/(1−s). Set = 2 → **s = 1/2 (50%).**
 
 ---
 
-## Part 1(d) — Sparse memory bytes (CSR)
+## Session 3 — CMAN Part (d) review & precision push (key session)
 
-**Claudian:** CSR has three arrays. Can you list what each stores?
+**Me [pasted full cman_sparsity_analysis.md]**
 
-**Me:** What's CSR?
+**Claudian:** Walk through 8(0.1)(262144) — where do the 8 and the 0.1 come from?
 
-**Claudian:** Compressed Sparse Row format. Three arrays:
-- `values` — actual non-zero weights
-- `col_idx` — column position of each non-zero
-- `row_ptr` — where each row starts (length N+1)
+**Me:** 8 = 4B value + 4B col_idx per non-zero. 0.1 = (1−s) at s=0.9 → fraction of non-zeros.
 
-How many bytes each?
+**Claudian:** Now your "lesson" paragraph says the 5× speedup is "exactly what the breakeven analysis predicts." Why?
 
-**Me:** So it's 4 bytes for the first two and then row pointer has 16?
+**Me:** CSR costs 2× per NZ → memory speedup = half of FLOPs speedup at high s.
 
-**Claudian:** Almost! Look at the spec:
-- values: 4 bytes per non-zero ✓
-- col_idx: 4 bytes per non-zero ✓
-- row_ptr: **4 bytes per entry, N+1 entries**
+**Claudian:** Show that algebraically. Write B_dense / B_sparse and trace where the factor of 2 appears.
 
-How many non-zeros are there? (From part c.)
+**Me:** B_dense / B_sparse(s) = 4N² / [8(1−s)N² + 4(N+1)] → drop row_ptr → **1 / [2(1−s)] = (1/2) × 1/(1−s).**
 
-**Me:** So it's 16(1−s)?
+**Claudian:** Does your doc make clear this is an asymptotic approximation, valid only at large N / high s?
 
-**Claudian:** Let's build it piece by piece. Non-zeros = N²(1−s).
-- values array: 4 × N²(1−s) bytes
-- col_idx array: 4 × N²(1−s) bytes
+**Me:** No — I only stated it as intuition. Updated the doc to:
+- show the exact formula first
+- show the asymptotic simplification with the validity condition (4(N+1) ≪ 8(1−s)N², i.e., (1−s)N ≫ 1/2)
+- show the cost-ratio side-by-side table: FLOPs 2/2 = 1; memory 4/8 = 1/2
+- state that the per-element cost ratio is what factors out in front of 1/(1−s)
 
-Add them.
+**Claudian:** Trace why the per-element byte cost ratio specifically appears in the speedup.
 
-**Me:** 8N²(1−s).
+**Me:** The 4/8 appears because dividing dense bytes by sparse bytes gives (4·N²) / (8·(1−s)·N²); the 4-over-8 — the cost-per-element ratio — factors out as 1/2 in front of the 1/(1−s) you already had from FLOPs. **FLOPs has no penalty (2/2 = 1) because a MAC is a MAC; memory has a 1/2 penalty (4/8) because CSR carries an extra INT32 col_idx per NZ.**
 
-**Claudian:** Add the row_ptr: 4(N+1) bytes. Total?
-
-**Me:** Before we go further — for values and col_idx, are they both 8N²(1−s)?
-
-**Claudian:** No — 8N²(1−s) is the **combined** total. Individually each is 4N²(1−s). Now add row_ptr.
-
-**Me:** So it's 8N²(1−s) + 4(N+1)?
-
-**Claudian:** Perfect! 🎉
-
-**Answer:** $B_\text{sparse}(s) = 8N^2(1-s) + 4(N+1)$ bytes
-
-Sanity check at s=0 (fully dense): 8·512²·1 + 4·513 = 2,097,152 + 2,052 = **2,099,204 bytes** — twice the dense storage! CSR adds overhead, so it only saves memory when sparsity is high enough. (This is the setup for Task 3, the memory breakeven.)
+**Claudian:** ✓ Solid algebraic path. CMAN looks done.
 
 ---
 
-## Part 2 — FLOPs speedup and the 2× sparsity
+## Session 4 — CLLM synth_interpretation review
 
-**Me:** OK for 2, do part 1a over 1c?
+**Me [pasted synth_interpretation.md]**
 
-**Claudian:** Exactly!
+**Claudian:** How did you get 24 MHz from WNS = −31.53 ns at a 10 ns clock?
 
-$$\text{Speedup} = \frac{2N^2}{2N^2(1-s)}$$
+**Me:** WNS = −31.53 ns means the critical path is 31.53 ns longer than the 10 ns target.
+- Actual path delay = 10 + 31.53 = **41.53 ns**
+- Min clock period for closure = 41.53 ns
+- Max frequency = 1 / 41.53 ns ≈ **24 MHz** — the no-pipelining ceiling.
 
-Simplify?
+**Claudian:** Does your doc show that arithmetic explicitly, or just state the 24 MHz conclusion?
 
-**Me:** I got s − 1/2.
+**Me:** Only stated the conclusion. Updated the (a) section to show the arithmetic:
+> Negative slack means the critical path is longer than the target period by |WNS|, so actual path delay = 10.0 ns + 31.53 ns = 41.53 ns. For timing closure without pipelining, the clock period must be at least 41.53 ns, i.e., max frequency ≈ 1 / 41.53 ns ≈ 24 MHz.
 
-**Claudian:** Careful with the cancellation. The 2N² cancels top and bottom, leaving 1/(1−s).
-
-**Me:** s = 1/2?
-
-**Claudian:** Set 1/(1−s) = 2. What does (1−s) equal?
-
-**Me:** OK now I got 4N²(1−s) = 2N², does that look right?
-
-**Claudian:** No — where did the 4N² come from? Keep it simple: 1/(1−s) = 2, solve for s.
-
-**Me:** It's because we're solving 2 = 2N² / N²(1−s).
-
-**Claudian:** I see what you're thinking, but the 2N² cancels completely:
-
-$$\frac{2N^2}{2N^2(1-s)} = \frac{1}{1-s}$$
-
-So just solve **1/(1−s) = 2**.
-
-**Me:** 2 = 2N² / 2N²(1−s).
-
-**Claudian:** Yes that's the starting point. Now cancel: 2N²/2N² = 1. You're left with 1/(1−s) = 2. What does (1−s) equal?
+*(Session ended at the 1-min wrap-up timer before the doc-state question could be re-answered.)*
 
 ---
 
-*[Working out the final algebra step: 1/(1−s) = 2 → 1−s = 1/2 → s = 1/2]*
+## Status of CF07 deliverables after these sessions
 
-**Final answer for Task 2:** Speedup = 1/(1−s); 2× speedup at **s = 1/2 = 50%**.
+| Deliverable | Status |
+|---|---|
+| `cman_sparsity_analysis.md` | ✅ updated with explicit algebraic derivation, asymptotic-vs-exact distinction, FLOPs/memory cost-ratio table, handwritten image |
+| `hdl/synth_top.sv` | ✅ |
+| `synth/` reports (metrics.csv + STA + synthesis) | ✅ |
+| `synth/synth_interpretation.md` | ✅ updated with explicit 10+31.53=41.53 ns → 24 MHz arithmetic |
+| `synth/m3_plan.md` | ✅ |
+| `project/scope_assessment.md` | ✅ |
+| `cf07_cman_handwritten.jpeg` | ✅ |
+| `claudian_tutoring_log.md` | ✅ this file |
 
----
-
-## Status
-
-| Task | Status |
-|------|--------|
-| 1(a) Dense FLOPs | ✅ 2N² |
-| 1(b) Dense bytes | ✅ 4N² |
-| 1(c) Sparse FLOPs | ✅ 2N²(1−s) |
-| 1(d) Sparse bytes | ✅ 8N²(1−s) + 4(N+1) |
-| 2. FLOPs speedup | ✅ 1/(1−s); 2× at s=1/2 |
-| 3. Memory breakeven | (next) |
-| 4. End-to-end at s=0.9 | (next) |
-
-All answers in `cman_sparsity_analysis.md` were derived by working through the math myself with Claudian as a guide. No answers were generated by AI.
+All TA-driven precisions made it into the deliverable files, not just chat.
