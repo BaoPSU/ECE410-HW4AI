@@ -284,51 +284,54 @@ Real chips: SpiNNaker (multicast routers), Loihi (axon table), TrueNorth (per-ne
 These are the questions the professor wrote **in red font** on the Week 8 deck. Same status as a QUIZ sticker — if it's red, expect it to come up.
 
 ### Q8.1 — Why is Cerebras WSE-3 *not* considered a neuromorphic chip? (page 2)
-The slide labels Cerebras WSE-3 in red as **"Not considered a neuromorphic chip"** even though it's huge (300 mm wafer, 4 T transistors, TSMC 5 nm, 57× larger than H100).
+So Cerebras WSE-3 is **4 trillion transistors on a 300 mm wafer, TSMC 5 nm, 57× larger than an H100**. Looks like it should be neuromorphic. It's not, and the slide flags that in red.
 
-**Answer.** Neuromorphic = brain-inspired processing (event-driven spikes, integrated compute+memory, on-chip learning, distributed connectivity). Cerebras WSE-3 is:
-- A **dense AI accelerator** for LLM training/inference (matrix math, not spikes)
-- **Clock-driven, synchronous** — not event-driven
-- **Von Neumann–style** dataflow at the core/tile level (just massively replicated)
-- No SNN, no STDP, no biologically-inspired neuron model
+**Answer.** Neuromorphic means brain-inspired *processing*, so event-driven spikes, integrated compute and memory, on-chip learning, distributed connectivity. Cerebras WSE-3 misses on every one.
 
-It's brute scale, not brain inspiration. Same reason the slide deck later (p.38) reframes **IBM NorthPole** as "structurally inspired by the brain" but **not** truly neuromorphic — it's a dense INT2/4/8 inference chip with no spikes, no learning, no neurons.
+- All **dense matrix math** for LLM training and inference, no spikes anywhere.
+- **Clock-driven and synchronous**, not event-driven.
+- **Von Neumann dataflow** at the core/tile level, just replicated 850,000 times.
+- No SNN, no STDP, no biological neuron model.
 
-### Q8.2 — Why not do everything in software? (page 5, slide "The usual trade-offs…!")
-The slide arranges chips on a flexibility ↔ performance axis: SpiNNaker (most flexible/digital) → Akida/Loihi/Loihi 2/BrainScaleS-2/T1 (middle) → TrueNorth/NorthPole (most performant/analog-ish).
+So it's brute scale, not brain inspiration. Same trick the slides pull later on **IBM NorthPole** (p.38): IBM markets it as brain-inspired, but it's actually a dense INT2/4/8 inference chip with no spikes, no learning, no neurons. Structurally inspired by the brain, fine. Functionally neuromorphic, no.
 
-**Answer.** SW on a CPU is the most flexible option, but the energy and latency cost is fatal for neuromorphic workloads:
-- **Energy**: every spike in SW = instruction fetch + decode + memory access. Memory access alone is ~2 nJ for DRAM vs ~0.1 pJ for an INT4 mult — **~20,000× more expensive**. Brain-scale SNNs (billions of neurons) become infeasible.
-- **Latency**: real-time sensory processing needs μs response. CPU SW emulation runs **1000× slower than biological real-time**; BrainScaleS runs **10,000× faster** than real-time *because* it's analog hardware.
-- **Parallelism**: brain is massively parallel + event-driven; CPU is sequential + clock-driven. The fundamental mismatch wastes most of the time idle waiting on memory.
-- **Sparse activity is wasted in SW**: only ~1% of neurons spike per timestep, but SW still pays full instruction overhead per neuron. Hardware can gate everything off until a spike arrives.
+### Q8.2 — Why not do everything in software? (page 5, "The usual trade-offs…!")
+So **2 nJ for one DRAM access**, **0.1 pJ for an INT4 multiply**. That's a **20,000× gap on memory alone**. Now scale to a billion-neuron SNN running in real-time. SW on a CPU can't get there.
 
-That's the whole reason this course exists: when memory access and parallelism are the bottleneck, **specialized HW** is the only way through. Other trade-offs on the slide (Power, Reliability, Programmability, On-chip learning, Cost, Scalability) push you toward more analog as you move right; more digital as you move left.
+**Answer.** Four reasons it dies in software.
+
+- **Energy**: every spike in SW costs instruction fetch + decode + memory access. The memory part alone is the 20,000× hit above. Brain-scale SNNs become infeasible before you even get to the compute.
+- **Latency**: real-time sensing needs microsecond response. CPU SW emulation runs about **1000× slower than biological real-time**. For example BrainScaleS hits **10,000× faster** than real-time, but only because it's analog hardware.
+- **Parallelism**: brain is massively parallel and event-driven, CPU is sequential and clock-driven. Most of the time you're idle waiting on memory anyway.
+- **Sparse activity is wasted in SW**: about **1% of neurons spike** per timestep, but SW still pays full instruction overhead per neuron. Hardware can gate everything off until a spike arrives. SW can't.
+
+So that's the whole reason this course exists. When memory access and parallelism are the bottleneck, **specialized HW is the only way through.** The other trade-offs on the slide (power, reliability, programmability, on-chip learning, cost, scalability) push you toward more analog as you move right, more digital as you move left.
 
 ### Q8.3 — What to do with negative weights? (page 10, crossbar slide)
-Crossbars implement MVM via **I = G · V** where conductance G is a memristor cell value. Conductances are **always positive** — there's no such thing as a negative resistor. But real neural networks need **signed weights** for excitatory + inhibitory synapses.
+So the crossbar does **I = G · V**, and conductance G is **always positive**. There's no such thing as a negative resistor. But NN weights need to be **signed** for excitatory plus inhibitory synapses. So how do you get a negative weight out of a non-negative device?
 
-**Answer.** Three standard techniques:
+**Answer.** Three standard fixes.
 
-1. **Two-column / differential pair encoding** (most common). Store each weight w = G⁺ − G⁻ using two memristor columns. The output current is I = (G⁺ − G⁻)·V. **Costs 2× area** but gives a clean signed result with the same crossbar primitive.
-2. **Offset / bias subtraction**. Store w_shifted = w + w_max so all values are positive, then subtract a fixed offset at the readout. Cheap (1× area) but loses dynamic range and is sensitive to ADC noise on the offset.
-3. **Sign-bit + magnitude in separate arrays**. One array stores sign, another stores magnitude; combine in the periphery. Highest area cost, but clean separation for digital post-processing.
+1. **Differential pair encoding (most common).** Store each weight as **w = G⁺ − G⁻** across two memristor columns. Output current is I = (G⁺ − G⁻)·V. About **2× area**, but you get a clean signed result with the same crossbar primitive. This is what TrueNorth, Mythic, and most published memristor accelerators use.
+2. **Offset subtraction.** Store w_shifted = w + w_max so all values are positive, then subtract a fixed offset at readout. Just **1× area**, but you lose dynamic range and the ADC noise on the offset eats you.
+3. **Sign-bit + magnitude in separate arrays.** One array stores the sign, another stores the magnitude, combine in the periphery. **Highest area cost**, but clean separation for digital post-processing.
 
-The slide hints at the **differential pair** scheme via the symmetric pair of conductances drawn in the diagram (G_{i,j} top half + R̄_x bottom half feeding a subtracting summing amp). This is what TrueNorth, Mythic, and most published memristor accelerators use.
+The slide hints at the differential pair scheme via the symmetric conductances drawn in the diagram (G_{i,j} on top, R̄_x on bottom, both feeding a subtracting summing amp). So if the prof asks you to pick one, **differential pair** is the safe answer.
 
 ### Q8.4 — Why is that gain performance not impressive? (page 53, "LLM on Loihi 2")
-The paper (Abreu et al., ICLR 2025 SCOPE workshop, arXiv:2503.18002v2) reports running a **MatMul-free 370 M-parameter LLM on Intel Loihi 2** with results highlighted in yellow: *"up to 3× higher throughput with 2× less energy, compared to transformer-based LLMs on an edge GPU."*
+So Abreu et al. (ICLR 2025 SCOPE workshop, arXiv:2503.18002v2) ran a **MatMul-free 370 M-parameter LLM on Intel Loihi 2** and reported **3× throughput, 2× less energy** vs transformer-based LLMs on an edge GPU. The slide highlights the result in yellow. Sounds good. It's actually really weak.
 
-**Answer.** That sounds good but it's actually a weak result for a purpose-built neuromorphic chip:
+**Answer.** Five things wrong with this number.
 
-- **3× throughput is tiny** for a custom-silicon vs general-purpose-GPU comparison. ASICs/NPUs routinely show **10×–1000×** over a CPU/GPU baseline (see Q7.1 emerging-tech table). A 3× win means Loihi 2's silicon advantage is barely showing up.
-- **2× energy is also weak**. Loihi is supposed to be **~1000× more energy-efficient than GPUs** (slide says exactly this in the academic chips table). Hitting only 2× means the workload isn't using what makes neuromorphic special.
-- **The model was specifically rewritten** to fit Loihi 2's constraints — "MatMul-free" using HGRN + RMSNorm + BitLinear from Zhu et al. (2024). It's not a normal transformer; it's a paper-thin neuromorphic-friendly variant.
+- **3× throughput is tiny** for a custom-silicon vs general-purpose-GPU comparison. ASICs and NPUs routinely show **10× to 1000×** over a CPU/GPU baseline (see Q7.1 emerging-tech table). 3× means Loihi 2's silicon advantage is barely showing up.
+- **2× energy is also weak.** Loihi is supposed to be about **1000× more energy-efficient than GPUs** (the academic chip table literally says this). Hitting only 2× means the workload isn't using what makes neuromorphic special.
+- **The model was rewritten to fit Loihi 2's constraints.** MatMul-free, HGRN, RMSNorm, BitLinear from Zhu et al. 2024. Not a normal transformer, a paper-thin neuromorphic-friendly variant.
 - **The baseline is an edge GPU**, not a datacenter GPU. Smaller win against a smaller comparison.
-- **Only 370 M parameters** — well below the scale where LLMs actually need to run (7 B+). At usable LLM scale, the result might collapse entirely.
-- **Transformer attention requires matrix-matrix multiplication** (see slide p.55) — fundamentally **un-brain-like**. Spikes can't train with backprop (no global gradient signal), only STDP, which is local-only with no convergence guarantee. SpikeGPT, BitLinear, etc. exist precisely *because* the natural transformer math doesn't fit on a neuromorphic substrate at all.
+- **Only 370 M parameters**, well below the scale where LLMs actually need to run (7 B and up). At usable scale the result might collapse entirely.
 
-**Punchline**: 3× / 2× is what you'd get from a moderately good software optimization, not from a fundamentally different chip architecture. For Loihi 2 to be worth the trouble, you'd want the kind of efficiency gain it already shows on sparse, event-driven workloads (image segmentation, keyword spotting, robot control — see Loihi EDP scatter plot p.46) — *not* LLM inference, which is the wrong workload for a spiking chip.
+**Why it doesn't fit on a spiking chip at all.** Transformer attention needs matrix-matrix multiply (slide p.55), so it's fundamentally un-brain-like. Spikes can't train with backprop because there's no global gradient signal, just STDP, which is local-only with no convergence guarantee. So SpikeGPT, BitLinear, the whole "MatMul-free" line of work exists precisely because the natural transformer math **doesn't fit on a neuromorphic substrate.**
+
+So the punchline: 3× / 2× is what you'd get from a moderately good software optimization, not from a fundamentally different chip architecture. Loihi 2's actual win shows up on **sparse, event-driven workloads** (image segmentation, keyword spotting, robot control, see Loihi EDP scatter on p.46). LLM inference is the wrong workload for a spiking chip.
 
 ---
 
