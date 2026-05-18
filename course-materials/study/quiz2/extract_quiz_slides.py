@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Extract QUIZ-stickered slides from week 6 & 7 source PDFs into one combined PDF.
+Extract QUIZ-stickered slides from week 6, 7, and 8 source PDFs into one combined PDF.
 Page numbers are 1-indexed and reflect the slides I visually confirmed have a
-red "QUIZ" sticker.
+red "QUIZ" sticker, PLUS week 8 slides that carry red-font instructor questions
+(Q8.1–Q8.4 in quiz_marked_slides.md) — same study-priority as a QUIZ sticker.
 
 Output:
   quiz_marked_slides/quiz_marked_combined.pdf
@@ -55,9 +56,24 @@ W7_QUIZ_PAGES = {
     51: "How does the source know the destination? (routing table at source core)",
 }
 
+W8_QUIZ_PAGES = {
+    # QUIZ-stickered (same red sticker as weeks 6/7)
+    8:  "Neural network acceleration ecosystem (GPU/TPU/FPGA/ASIC) — QUIZ sticker",
+    19: "AER (Address Event Representation) — QUIZ sticker",
+    20: "Network-on-Chip (NoC) — 2D mesh — QUIZ sticker",
+    22: "Example: AER over NoC (concrete spike packet) — QUIZ sticker",
+    23: "How does the source know the destination? (routing table) — QUIZ sticker",
+    # Red-font instructor questions (Q8.1–Q8.4 — same priority as QUIZ)
+    2:  "What are neuromorphic chips? — Q8.1: Why is Cerebras WSE-3 NOT neuromorphic? (red label)",
+    5:  "The usual trade-offs — Q8.2: Why not do everything in software? (red text)",
+    10: "Key building block: the crossbar — Q8.3: What to do with negative weights? (red text)",
+    53: "LLM on Loihi 2 — Q8.4: Why is that gain performance not impressive? (red text)",
+}
+
 W6_PDF     = ROOT / "week06" / "w6_mon_transformers_in_memory.pdf"
 W7_PDF     = ROOT / "week07" / "slides" / "w7_mon_neuromorphic_chips.pdf"
 W7_WED_PDF = ROOT / "week07" / "slides" / "w7_wed_codefest_7.pdf"
+W8_PDF     = ROOT / "week08" / "slides" / "w8_mon_neuromorphic_chips.pdf"
 
 def extract(src: Path, pages_dict: dict, writer: PdfWriter, label: str):
     reader = PdfReader(str(src))
@@ -76,12 +92,18 @@ extract(W7_PDF, W7_QUIZ_PAGES, writer, "W7")
 print("\nExtracting from week 7 (Wed CF7 lecture):")
 extract(W7_WED_PDF, W7_WED_QUIZ_PAGES, writer, "W7-Wed")
 
+print("\nExtracting from week 8:")
+# Sort pages so the combined PDF is in deck order, not dict-insertion order.
+w8_sorted = dict(sorted(W8_QUIZ_PAGES.items()))
+extract(W8_PDF, w8_sorted, writer, "W8")
+
 out = OUT_DIR / "quiz_marked_combined.pdf"
 with open(out, "wb") as f:
     writer.write(f)
 
-total = len(W6_QUIZ_PAGES) + len(W7_QUIZ_PAGES) + len(W7_WED_QUIZ_PAGES)
+total = len(W6_QUIZ_PAGES) + len(W7_QUIZ_PAGES) + len(W7_WED_QUIZ_PAGES) + len(W8_QUIZ_PAGES)
 print(f"\nSaved {total} slides to {out}")
 print(f"  W6: {len(W6_QUIZ_PAGES)} slides")
 print(f"  W7 (Mon): {len(W7_QUIZ_PAGES)} slides")
 print(f"  W7 (Wed): {len(W7_WED_QUIZ_PAGES)} slides")
+print(f"  W8: {len(W8_QUIZ_PAGES)} slides")

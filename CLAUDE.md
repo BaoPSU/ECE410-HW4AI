@@ -171,6 +171,13 @@ This section tracks which slide files have been processed into notes or the chea
 | `w7_mon_neuromorphic_chips.pdf` | IMC fundamentals (energy of memory access, DRAM 2nJ vs INT4 mult 0.1pJ), crossbar primitive (Ohm + Kirchhoff for MVM), memory types (RRAM/PCM/STT-MRAM), sneak paths + solutions (diodes, 1T1R), IMC maturity (TRL 7–8), sparse MVM and sparse-on-crossbar (permute & pack, CSR format, 70% sparsity crossover), neuromorphic chips: characteristics + approaches, AER protocol, NoC, major chips (SpiNNaker, TrueNorth, NorthPole 10 axioms, BrainScaleS-2 AdEx, Loihi/Loihi 2 LIF + Lava, Akida TENNs), LLM on Loihi 2, current limitations, "AlexNet moment", feature maturation, autonomous vehicle applications | `week07_notes.md` §1–12 |
 | `w7_wed_codefest_7.pdf` | CF7 lecture: CSR Compressed Sparse Row (values/col_idx/row_ptr), CSR 4×4 example with 2 NZ per row (worked storage), reconstructing A from CSR (walk-by-row_ptr trace), ASIC design flow (front-end / back-end), OpenLane 2 tools overview. 3 QUIZ-marked slides (CSR fundamentals + 4×4 example + reconstruction). | `week07_notes.md` §4 (CSR already covered); `study/quiz2/quiz_marked_slides.md` §Q7.15–Q7.17 |
 
+### Week 8 — `course-materials/week08/slides/`
+
+| Slide file | Topics | Covered in |
+|-----------|--------|------------|
+| `w8_mon_recap.pdf` | Week 7 recap | (recap deck — content already covered) |
+| `w8_mon_neuromorphic_chips.pdf` | Neuromorphic chips deep dive (~61 slides): NM chip definitions, Cerebras NOT neuromorphic, key characteristics, flexibility↔performance trade-off, NN acceleration ecosystem, inference vs training, neuromorphic processor architecture, crossbar building block, why-CPU-in-NM, commercialisation comparison tables, academic+commercial chip tables, AER spike protocol, NoC topologies (crossbar/star/ring/tree/mesh/torus), AER-over-NoC routing example, source-routing tables, Neuromorphic Commons (THOR), SpiNNaker / SpiNNaker2 deep dive, memristors + STDP, IBM TrueNorth (65 mW, 5.4 B transistors, 1 M neurons), IBM NorthPole (dense INT2/4/8 inference, not truly neuromorphic), BrainScaleS / BrainScaleS-2 (10,000× real-time, AdEx, PPU), Loihi / Loihi 2 (LIF + RF + Hopf resonator), LLM on Loihi 2 paper critique, Akida (TENNs), brain-like HW critique, industry timeline, neuron-count progression, feature maturation, gaps in NM software ecosystem, are spikes the future for LLMs?, NM design choices recap. 5 QUIZ stickers (pp.8, 19, 20, 22, 23) + 4 red-font instructor questions (pp.2, 5, 10, 53). | `study/quiz2/quiz_marked_slides.md` §Q8.1–Q8.4 + Week 8 QUIZ slides; `study/quiz2/quiz_marked_slides/quiz_marked_combined.pdf` (regenerated, now 37 slides) |
+
 ### What to do when new slides are uploaded
 
 1. Add a row to the table above for the new file

@@ -1,10 +1,10 @@
 # QUIZ-Marked Slides — Combined PDF
 
-**File**: `quiz_marked_combined.pdf` — 28 slides total
+**File**: `quiz_marked_combined.pdf` — 37 slides total
 
 ## What's in here
 
-Every slide in weeks 6 and 7 that has a red **QUIZ** sticker on it, extracted from the source decks and merged into one PDF for focused review.
+Every slide in weeks 6, 7, and 8 that has a red **QUIZ** sticker, plus week 8 slides with red-font instructor questions (Q8.1–Q8.4 in `../quiz_marked_slides.md`) — same study priority. Extracted from the source decks and merged into one PDF for focused review.
 
 ## Page-by-page index
 
@@ -50,6 +50,22 @@ Every slide in weeks 6 and 7 that has a red **QUIZ** sticker on it, extracted fr
 | 2 | CSR: Compressed Sparse Row — three arrays, how to read row i |
 | 3 | CSR Example: 4×4 with 2 NZ per row (worked storage example) |
 | 4 | Reconstructing A from CSR — walk-by-row_ptr trace on the 4×4 |
+
+### From `week08/slides/w8_mon_neuromorphic_chips.pdf` (9 slides)
+
+QUIZ-stickered slides + 4 red-font instructor questions (same priority).
+
+| Source page | Topic | Why included |
+|:-----------:|-------|--------------|
+| 2 | What are neuromorphic chips? — Cerebras WSE-3 NOT neuromorphic | **Q8.1 (red label)** |
+| 5 | The usual trade-offs — "Why not do everything in software?" | **Q8.2 (red text)** |
+| 8 | Neural network acceleration ecosystem (GPU/TPU/FPGA/ASIC) | QUIZ sticker |
+| 10 | Key building block: the crossbar — "What to do with negative weights?" | **Q8.3 (red text)** |
+| 19 | AER (Address Event Representation) | QUIZ sticker |
+| 20 | Network-on-Chip (NoC) — 2D mesh | QUIZ sticker |
+| 22 | Example: AER over NoC (concrete spike packet) | QUIZ sticker |
+| 23 | How does the source know the destination? (routing table) | QUIZ sticker |
+| 53 | LLM on Loihi 2 — "Why is that gain performance not impressive?" | **Q8.4 (red text)** |
 
 ## How to regenerate
 
