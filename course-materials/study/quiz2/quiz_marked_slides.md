@@ -284,7 +284,7 @@ Real chips: SpiNNaker (multicast routers), Loihi (axon table), TrueNorth (per-ne
 These are the questions the professor wrote **in red font** on the Week 8 deck. Same status as a QUIZ sticker — if it's red, expect it to come up.
 
 ### Q8.1 — Why is Cerebras WSE-3 *not* considered a neuromorphic chip? (page 2)
-So Cerebras WSE-3 is **4 trillion transistors on a 300 mm wafer, TSMC 5 nm, 57× larger than an H100**. Looks like it should be neuromorphic. It's not, and the slide flags that in red.
+Cerebras WSE-3 is **4 trillion transistors on a 300 mm wafer, TSMC 5 nm, 57× larger than an H100**. Looks like it should be neuromorphic. It's not, and the slide flags that in red.
 
 **Answer.** Neuromorphic means brain-inspired *processing*, so event-driven spikes, integrated compute and memory, on-chip learning, distributed connectivity. Cerebras WSE-3 misses on every one.
 
@@ -296,7 +296,7 @@ So Cerebras WSE-3 is **4 trillion transistors on a 300 mm wafer, TSMC 5 nm, 57×
 So it's brute scale, not brain inspiration. Same trick the slides pull later on **IBM NorthPole** (p.38): IBM markets it as brain-inspired, but it's actually a dense INT2/4/8 inference chip with no spikes, no learning, no neurons. Structurally inspired by the brain, fine. Functionally neuromorphic, no.
 
 ### Q8.2 — Why not do everything in software? (page 5, "The usual trade-offs…!")
-So **2 nJ for one DRAM access**, **0.1 pJ for an INT4 multiply**. That's a **20,000× gap on memory alone**. Now scale to a billion-neuron SNN running in real-time. SW on a CPU can't get there.
+**2 nJ for one DRAM access**, **0.1 pJ for an INT4 multiply**. **20,000× gap on memory alone**. Now scale that to a billion-neuron SNN running in real-time. SW on a CPU can't get there.
 
 **Answer.** Four reasons it dies in software.
 
@@ -308,7 +308,7 @@ So **2 nJ for one DRAM access**, **0.1 pJ for an INT4 multiply**. That's a **20,
 So that's the whole reason this course exists. When memory access and parallelism are the bottleneck, **specialized HW is the only way through.** The other trade-offs on the slide (power, reliability, programmability, on-chip learning, cost, scalability) push you toward more analog as you move right, more digital as you move left.
 
 ### Q8.3 — What to do with negative weights? (page 10, crossbar slide)
-So the crossbar does **I = G · V**, and conductance G is **always positive**. There's no such thing as a negative resistor. But NN weights need to be **signed** for excitatory plus inhibitory synapses. So how do you get a negative weight out of a non-negative device?
+The crossbar does **I = G · V**, and conductance G is **always positive**. There's no such thing as a negative resistor. But NN weights need to be **signed** for excitatory plus inhibitory synapses. So how do you get a negative weight out of a non-negative device?
 
 **Answer.** Three standard fixes.
 
@@ -319,7 +319,7 @@ So the crossbar does **I = G · V**, and conductance G is **always positive**. T
 The slide hints at the differential pair scheme via the symmetric conductances drawn in the diagram (G_{i,j} on top, R̄_x on bottom, both feeding a subtracting summing amp). So if the prof asks you to pick one, **differential pair** is the safe answer.
 
 ### Q8.4 — Why is that gain performance not impressive? (page 53, "LLM on Loihi 2")
-So Abreu et al. (ICLR 2025 SCOPE workshop, arXiv:2503.18002v2) ran a **MatMul-free 370 M-parameter LLM on Intel Loihi 2** and reported **3× throughput, 2× less energy** vs transformer-based LLMs on an edge GPU. The slide highlights the result in yellow. Sounds good. It's actually really weak.
+Abreu et al. (ICLR 2025 SCOPE workshop, arXiv:2503.18002v2) ran a **MatMul-free 370 M-parameter LLM on Intel Loihi 2** and reported **3× throughput, 2× less energy** vs transformer-based LLMs on an edge GPU. The slide highlights it in yellow. Sounds good. It's actually really weak.
 
 **Answer.** Five things wrong with this number.
 
