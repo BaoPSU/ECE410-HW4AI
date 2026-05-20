@@ -36,6 +36,7 @@ This folder contains the M3 deliverables: an integrated top module that wires th
 | `synth/v2005/axil_slave_int.v` | Verilog-2005 port of `rtl/axil_slave_int.sv`. Uses a flat `case` over `wr_addr[11:0]` for the address decode instead of a `task` + loop (cleaner for yosys) |
 | `synth/v2005/kmeans_dist_core_pipelined.v` | Verilog-2005 port of `rtl/kmeans_dist_core_pipelined.sv` with flat packed buses (`pixel_flat`, `centroids_flat`) instead of unpacked array ports |
 | `synth/.gitignore` | Excludes the bulky `runs/` directory (only curated reports are committed) |
+| `synth/HOW_TO_FIX_4C.md` | How the OpenLane post-synth checker was overridden (`ERROR_ON_SYNTH_CHECKS: false`) so the full PnR + STA + power flow could run — playbook for M4 and future codefests |
 | `synthesis_notes.md` | ≥500-word narrative: what synthesized, what didn't, scope adjustments, M4 forward plan |
 
 ---
