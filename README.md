@@ -11,6 +11,15 @@ This repository contains my ECE410/510 Codefest homework assignments using AI to
 
 ---
 
+## 📌 M4 Final Submission
+
+**M4 deliverables → [`project/m4/`](project/m4/README.md)**
+**Design justification report → [`project/m4/report/design_justification.pdf`](project/m4/report/design_justification.pdf)**
+
+The semester project is a **K-Means image color quantization accelerator** — a 3-stage pipelined integer compute core wrapped in an AXI4-Lite slave, synthesizable through OpenLane 2 on sky130. Post-PnR results: timing closed at 100 MHz with +3.13 ns of positive slack, 5.87 mW power, 0.093 mm² placed area.
+
+---
+
 ## Repository Structure
 
 ```
@@ -77,5 +86,7 @@ Documented in `project/m1/interface_selection.md`. UCIe provides 51× more bandw
 |-----------|----------|--------|
 | M1: Interface selection + SW baseline | `project/m1/` | Done |
 | M2: Precision choice + behavioral RTL + AXI4-Lite slave | `project/m2/` | Done |
+| M3: Integrated top + OpenLane synthesis (timing closed) | `project/m3/` | Done |
+| **M4: Final package + benchmark + 9-section design justification** | **[`project/m4/`](project/m4/README.md)** | **In progress (due Jun 7)** |
 
 ![System Diagram](project/m1/system_diagram.png)

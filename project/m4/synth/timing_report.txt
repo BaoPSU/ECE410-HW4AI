@@ -1,0 +1,67 @@
+M3 Post-PnR Timing Report (OpenROAD STA)
+========================================
+Tool        : OpenLane v2.3.10 (dockerized)
+PDK / SCL   : sky130_fd_sc_hd
+Stage       : 54-openroad-stapostpnr (full PnR + STA)
+Target clock: 10.0 ns (100 MHz)
+Source      : project/m3/synth/runs/RUN_2026-05-20_22-19-25/
+
+Summary across PVT corners
+==========================
+Corner                          WNS (ns)   TNS (ns)    Verdict
+----------------------------------------------------------------
+nom_tt_025C_1v80  (TYPICAL)         0.0       0.0      CLOSED ✓
+nom_ff_n40C_1v95  (FAST,  -40°C)    0.0       0.0      CLOSED ✓
+nom_ss_100C_1v60  (SLOW, +100°C)   -3.04   -117.13     fails 10 ns at SS corner
+
+Worst slack (positive headroom at typical) : +3.13 ns
+Worst slack (negative across all corners)  : -3.21 ns @ SS
+
+Hold checks (min-delay): all corners 0.0 ns / no violations.
+Clock skew (worst setup, typical)          : 0.52 ns
+Clock skew (worst hold,  typical)          : -0.46 ns
+
+Interpretation
+==============
+Timing closes at typical (TT 25°C 1.8V) and fast (FF -40°C 1.95V) corners with
+**3.13 ns of positive slack** to spare on the worst path. The slow-slow corner
+(SS 100°C 1.6V) misses by ~3 ns; the design would close all corners at a
+~13 ns / 76 MHz clock target. For the M1 PIM chiplet I/O budget (16 TB/s
+HBM3 via UCIe @ 100 MHz interface clock), nominal closure is the required
+target and is met.
+
+Compared to the CF07 unpipelined baseline (WNS = -31.53 ns, TNS = -662.68 ns,
+22 setup-failing endpoints, ~24 MHz no-pipeline ceiling), the 3-stage
+pipelined M3 design closes 10 ns at typical/fast with 3.13 ns headroom -
+exactly what the cf07/synth/m3_plan.md projected.
+
+Worst-case critical path (typical corner)
+=========================================
+Startpoint: _14498_  (a pixel byte register inside axil_slave_int, driving
+                      u_axil.pixel_flat[0] - the broadcast of one of the
+                      pixel bytes into the compute core's Stage 1 abs_diff
+                      cone)
+Endpoint  : _14004_  (a Stage-1 kdist accumulator register inside
+                      kmeans_dist_core_pipelined)
+Path type : setup, max corner
+Path delay: ~6.87 ns (10 ns clock - 3.13 ns slack)
+
+This is the **input broadcast + Stage-1 kdist compute** path the
+critical_path.md document predicted as the longest cone of the pipeline.
+The 3-stage split holds it under the 10 ns budget at typical conditions.
+
+Raw STA report excerpts
+=======================
+
+========== Worst Negative Slack (Setup) - max_tt_025C_1v80 ==========
+0.0
+
+========== Total Negative Slack (Setup)  - max_tt_025C_1v80 ==========
+0.0
+
+========== Worst Slack (positive headroom) - max_tt_025C_1v80 ==========
++3.1307 ns
+
+========== Hold checks (min corner) ==========
+WNS (min): 0
+TNS (min): 0

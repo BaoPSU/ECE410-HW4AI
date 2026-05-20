@@ -1,0 +1,41 @@
+VCD info: dumpfile tb_top.vcd opened for output.
+================================================================
+ M3 end-to-end co-simulation: top module via AXI4-Lite
+================================================================
+ Pixel = (R=200, G=100, B=50)
+ Independent SW reference:
+   kdist[ 0] = 42900   centroid=(10,20,30)
+   kdist[ 1] = 32500   centroid=(30,40,50)
+   kdist[ 2] = 24500   centroid=(50,60,70)
+   kdist[ 3] = 18900   centroid=(70,80,90)
+   kdist[ 4] = 15700   centroid=(90,100,110)
+   kdist[ 5] = 14900   centroid=(110,120,130)
+   kdist[ 6] = 16500   centroid=(130,140,150)
+   kdist[ 7] = 0   centroid=(200,100,50)
+   kdist[ 8] = 26900   centroid=(170,180,190)
+   kdist[ 9] = 35700   centroid=(190,200,210)
+   kdist[10] = 46900   centroid=(210,220,230)
+   kdist[11] = 60500   centroid=(230,240,250)
+   kdist[12] = 11225   centroid=(250,10,25)
+   kdist[13] = 45875   centroid=(5,15,25)
+   kdist[14] = 34875   centroid=(25,35,45)
+   kdist[15] = 26275   centroid=(45,55,65)
+ Expected label = 7, min_dist = 0
+----------------------------------------------------------------
+[H->A] WRITE PIXEL @ 0x008
+[H->A] WRITE 16 CENTROIDS @ 0x010..0x04C
+[H->A] WRITE CTRL.start @ 0x000
+[H<-A] POLL STATUS until done
+       STATUS = 0x00000001  done=1  busy=0  polls=1
+[H<-A] READ RESULT_LABEL @ 0x100
+       RESULT_LABEL = 7
+[H<-A] READ RESULT_DIST @ 0x104
+       RESULT_DIST  = 0
+----------------------------------------------------------------
+ DUT  label = 7, dist = 0
+ REF  label = 7, dist = 0
+ Cycles from start to done (approx) = 8
+================================================================
+ PASS
+================================================================
+/home/bao/ECE410-HW4AI/project/m4/tb/tb_top.sv:270: $finish called at 915000 (1ps)

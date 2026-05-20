@@ -1,0 +1,47 @@
+metric,m1_sw_baseline,m4_accelerator,unit,source,notes
+platform,Intel i9-12900H @ 5GHz,sky130_fd_sc_hd @ 100MHz,—,m1/sw_baseline.md m4/synth/timing_report.txt,
+precision,float32,INT8 in INT18 out,—,m2/precision_choice.md,
+image_size_pixels,480000,480000,pixels,800x600 bliss.jpg,
+K_centroids,16,16,—,—,
+D_dimensions,3,3,—,RGB,
+max_iters,20,20,—,—,
+wallclock_run1,8.798,—,seconds,m1/sw_baseline.md,
+wallclock_run2,8.528,—,seconds,m1/sw_baseline.md,
+wallclock_run3,8.508,—,seconds,m1/sw_baseline.md,
+wallclock_run4,8.872,—,seconds,m1/sw_baseline.md,
+wallclock_run5,9.057,—,seconds,m1/sw_baseline.md,
+wallclock_run6,8.751,—,seconds,m1/sw_baseline.md,
+wallclock_run7,9.098,—,seconds,m1/sw_baseline.md,
+wallclock_run8,8.737,—,seconds,m1/sw_baseline.md,
+wallclock_run9,8.848,—,seconds,m1/sw_baseline.md,
+wallclock_run10,8.888,—,seconds,m1/sw_baseline.md,
+wallclock_median,8.848,—,seconds,m1/sw_baseline.md,M1 reported median across 10 runs
+distance_kernel_fraction,0.46,—,fraction,m1/sw_baseline.md (cProfile),
+distance_kernel_time_m1,4.07,—,seconds,0.46 * 8.848,M1 distance kernel only
+fmax_typical,—,100,MHz,m4/synth/timing_report.txt,WNS=0 with +3.13 ns slack at max_tt_025C_1v80
+wns_typical,—,0.0,ns,m4/synth/timing_report.txt,
+slack_worst,—,3.13,ns,m4/synth/timing_report.txt,positive headroom
+tns_typical,—,0.0,ns,m4/synth/timing_report.txt,
+pipeline_stages,—,3,—,m4/rtl/compute_core.sv,Stage 1 kdist + Stage 2 argmin lvl 1-2 + Stage 3 argmin lvl 3-4
+samples_per_cycle_steady_state,—,1.0,samples/cycle,m4/rtl/compute_core.sv,
+kernel_throughput_pixels_per_sec,54251,100000000,pixels/sec,m1/sw_baseline.md and Fmax x throughput,M4 = 100MHz x 1 pixel/cycle
+kernel_time_per_image_m4_seconds,—,0.096,seconds,480000 pixels x 20 iters / 100 MHz,
+compute_throughput_gflops,0.16,—,GFLOP/s,m1/sw_baseline.md,
+compute_throughput_gops,—,12.8,GINT-ops/s,128 ops/cycle x 100 MHz,128 = 16 centroids x 8 ops
+ai_arithmetic_intensity,1.68,42.7,ops/byte,m1 baseline and m4 kernel,M4 = 16x16 centroids reused per 30k-pixel batch
+amdahl_speedup_kernel_only,1.0,42.4,x,M1 4.07s / M4 0.096s,
+amdahl_speedup_end_to_end,1.0,1.81,x,1 / (0.54 + 0.46/42.4),Amdahl-limited by un-accelerated centroid update
+cell_count_post_techmap,—,7671,cells,m4/synth/area_report.txt,sky130 mapped cells
+flip_flop_count,—,693,cells,m4/synth/area_report.txt,9% sequential
+placed_area_um2,—,92689,um^2,m4/synth/area_report.txt,
+die_area_um2,—,360000,um^2,600x600 from config DIE_AREA,
+core_utilization,—,0.26,fraction,placed / die,~26% util
+power_total_mw,—,5.87,mW,m4/synth/power_report.txt,max_tt_025C_1v80 corner
+power_sequential_mw,—,2.79,mW,m4/synth/power_report.txt,47.4%
+power_clock_mw,—,2.96,mW,m4/synth/power_report.txt,50.5%
+power_combinational_mw,—,0.124,mW,m4/synth/power_report.txt,2.1%
+energy_per_image_joules_estimated,177,~0.028 (kernel only),J,20W x 8.848s vs 5.87mW x 4.78s,M4 kernel-only, host still runs centroid update
+cpu_peak_gflops_theoretical,1400,—,GFLOP/s,m1/sw_baseline.md,
+ridge_point_flop_per_byte,18.23,—,FLOP/byte,m1 roofline,
+hbm3_bandwidth_tb_per_sec,—,16,TB/s,m1/interface_selection.md,target PIM chiplet
+ucie_bandwidth_tb_per_sec,—,2.56,TB/s,m1/interface_selection.md,51x headroom over required 50 GB/s

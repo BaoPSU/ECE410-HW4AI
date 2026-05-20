@@ -1,0 +1,49 @@
+M3 Post-PnR Power Report (OpenROAD)
+===================================
+Tool        : OpenLane v2.3.10 (dockerized)
+PDK / SCL   : sky130_fd_sc_hd
+Stage       : 54-openroad-stapostpnr (full PnR + STA + power)
+Source      : project/m3/synth/runs/RUN_2026-05-20_22-19-25/
+
+Summary (typical corner, max_tt_025C_1v80, 100 MHz)
+===================================================
+Total power : ~5.87 mW
+  Sequential (flip-flops)  : 2.79 mW  (47.4 %)  — pipeline registers
+  Clock tree               : 2.96 mW  (50.5 %)  — dominant
+  Combinational logic      : 0.124 mW (2.1 %)   — small
+  Macro / Pad              : 0       (0.0 %)
+Breakdown by source:
+  Internal (cap charging)  : 4.21 mW  (71.6 %)
+  Switching (load swap)    : 1.67 mW  (28.4 %)
+  Leakage                  : ~65 nW   (0.0 %)
+
+Final-state metrics.csv reports a slightly different total of 6.85 mW once
+all process corners are folded together; the table below is the typical
+corner used for the headline number.
+
+Why clock + flops dominate: 693 sequential cells × full toggle every cycle
+means the clock distribution + flop internal capacitance carry most of the
+power. The actual compute logic (subtracts, squares, adders, argmin tree)
+is only 2.1 % because it sits behind enabled flops and only switches when
+new data arrives.
+
+Raw OpenROAD report_power output
+================================
+
+===========================================================================
+ report_power
+============================================================================
+======================= max_tt_025C_1v80 Corner ===================================
+
+Group                    Internal    Switching      Leakage        Total
+                            Power        Power        Power        Power (Watts)
+------------------------------------------------------------------------
+Sequential           2.786480e-03 3.577911e-08 8.264655e-09 2.786524e-03  47.4%
+Combinational        2.710683e-05 9.687454e-05 3.272319e-08 1.240141e-04   2.1%
+Clock                1.393887e-03 1.570038e-03 2.400191e-08 2.963949e-03  50.5%
+Macro                0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00   0.0%
+Pad                  0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00   0.0%
+------------------------------------------------------------------------
+Total                4.207477e-03 1.666948e-03 6.498892e-08 5.874490e-03 100.0%
+                            71.6%        28.4%         0.0%
+
