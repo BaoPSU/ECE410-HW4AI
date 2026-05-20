@@ -3,13 +3,17 @@
 # Compile and simulate M2 testbenches with Icarus Verilog (iverilog)
 # ECE 410/510 Spring 2026 — Bao Nguyen
 #
-# Usage: bash sim/run_iverilog.sh
+# Usage: bash sim/run_iverilog.sh   (run from project/m2/)
+#    or: bash run_iverilog.sh       (run from project/m2/sim/)
 # Requires: iverilog >= 11 (SystemVerilog 2012 support)
 
 set -euo pipefail
 
-RTL=../rtl
-TB=../tb
+# Resolve paths from the script's own location, not the caller's cwd.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+M2_DIR="$(dirname "$SCRIPT_DIR")"
+RTL="$M2_DIR/rtl"
+TB="$M2_DIR/tb"
 
 echo "==========================================="
 echo " M2 Simulation — K-Means Distance Engine"

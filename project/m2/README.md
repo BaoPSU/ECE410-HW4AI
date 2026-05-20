@@ -36,6 +36,28 @@ Requires iverilog ≥ 11 (SystemVerilog 2012 support).
 
 ---
 
+## Issues found and fixed
+
+### `sim/run_iverilog.sh` had a path-resolution bug (caught during M3 prep, May 20 2026)
+
+**Symptom.** Running `bash sim/run_iverilog.sh` from `project/m2/` produced:
+```
+../rtl/distance_engine.sv: No such file or directory
+No top level modules, and no -s option.
+```
+
+**Root cause.** The script used relative paths `RTL=../rtl` and `TB=../tb`, which assumed the caller's working directory was `project/m2/sim/`. But the script's own usage comment told you to run it from `project/m2/`. From `project/m2/`, `../rtl` resolves to `project/rtl` (does not exist), so iverilog couldn't find the RTL.
+
+**Fix.** Resolve `RTL` and `TB` from the script's own location using `${BASH_SOURCE[0]}`, so it works no matter which directory you invoke it from. Updated the usage comment to document both invocations.
+
+**Verification.** After the fix, both testbenches pass:
+- `distance_engine_tb`: Test 1/2/3 all PASS (labels 0, 5, 15 with distances 3.0, 0.0, 9.0)
+- `axil_slave_tb`: AXI4-Lite end-to-end write→start→poll→read flow PASS
+
+**Lesson for M3.** Any shell wrapper script in `project/m3/sim/` should resolve paths from `${BASH_SOURCE[0]}`, not from the caller's cwd. The grader will run the script however they want, not from a fixed dir.
+
+---
+
 ## AXI4-Lite Register Map (`axil_slave.sv`)
 
 | Address | Name | R/W | Description |
