@@ -235,3 +235,9 @@ AER beats frame-based readout only when the mean firing rate is below 50 Hz, so 
 | 4 | FIFO depth if forced to I²C    | (B_peak − B_I²C) × 1 ms / 20 bits    | 86 packets → 128 for safety (counter-factual; SPI needs none) |
 | 5 | Frame-based bandwidth          | N × (1/T_frame) × 1 bit              | 1.024 Mbit/s |
 | 5 | Crossover firing rate          | 20·f = 1/T_frame → f = 50 Hz         | **f_crossover = 50 Hz** |
+
+---
+
+## Handwritten work
+
+The full on-paper derivation of all five tasks is in [`cf08_handwritten.pdf`](cf08_handwritten.pdf). The typed sections above match that handwritten work step-for-step and add rendered plots from `src/make_plots.py`.
