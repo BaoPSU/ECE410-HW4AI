@@ -1,0 +1,166 @@
+# CF08 CMAN — AER Bandwidth Analysis
+
+**Bao Nguyen | ECE 410/510 Spring 2026**
+
+**Given parameters (from the brief):**
+- N = 1024 output neurons
+- f = 50 Hz mean firing rate per neuron
+- Packet = 10-bit address + 6-bit timestamp + 4-bit framing/parity = 20 bits total
+- Firing is Poisson-like, independent across neurons
+
+---
+
+## 1. Mean aggregate spike rate R
+
+**Reasoning.** Each neuron fires at f = 50 spikes/s. There are N = 1024 neurons firing independently. By linearity of expectation (Poisson processes add), the aggregate spike rate is just the sum of the per-neuron rates.
+
+**Formula:**
+
+R = N × f
+
+**Substituting:**
+
+Step 1. Plug in N and f.
+R = 1024 × 50
+
+Step 2. Multiply.
+R = **51,200 spikes/second**
+
+---
+
+## 2. Mean AER bandwidth B
+
+**Reasoning.** Every spike produces one AER packet. Each packet is 20 bits (10 address + 6 timestamp + 4 framing/parity). So the bit rate is (spikes/s) × (bits/packet).
+
+**Formula:**
+
+B = R × 20 bits/packet
+
+**Substituting:**
+
+Step 1. Plug in R = 51,200 spikes/s.
+B = 51,200 × 20
+
+Step 2. Multiply.
+B = 1,024,000 bits/second
+
+Step 3. Convert bits/s → Mbit/s (divide by 10⁶).
+B = 1,024,000 / 1,000,000 = **1.024 Mbit/s**
+
+---
+
+## 3. Interface comparison
+
+Compute the **headroom** (interface max / required B) for each candidate. If the ratio is ≥ 1, the interface sustains the mean rate.
+
+| Interface | Max bandwidth | Headroom = max / 1.024 | Can sustain? | Notes |
+|-----------|---------------|------------------------|--------------|-------|
+| I²C       | ≤ 3.4 Mbit/s  | 3.4 / 1.024 = 3.32×    | **YES**      | 2-wire bus, lowest complexity |
+| SPI       | ≤ 50 Mbit/s   | 50 / 1.024 = 48.83×    | **YES**      | 4-wire, full-duplex |
+| AXI4-Lite | ~100 Mbit/s   | 100 / 1.024 = 97.66×   | **YES**      | Bus-fabric, highest complexity |
+
+**Lowest-complexity interface that suffices: I²C.**
+
+Reasoning: all three sustain the mean rate, so the deciding factor is complexity. I²C is a 2-wire bus (SCL + SDA) with no master-slave duplex requirement and the smallest pad footprint, so it's the cheapest of the three to integrate on the chip edge.
+
+---
+
+## 4. Burst analysis
+
+**Burst spec:** stimulus arrives that causes 25% of the 1024 neurons to fire within a 1 ms window.
+
+### 4a. Spikes in the burst window
+
+Step 1. Compute fraction firing.
+0.25 × 1024 = 256 neurons
+
+Step 2. Each fires once in the window (worst-case synchronous burst).
+n_burst = **256 spikes** in 1 ms
+
+### 4b. Peak instantaneous bandwidth
+
+Step 1. Compute total bits in the burst.
+bits_burst = n_burst × 20 bits/packet = 256 × 20 = 5,120 bits
+
+Step 2. Divide by the 1 ms window.
+B_peak = 5,120 bits / 1 ms = 5,120 bits / 0.001 s = 5,120,000 bits/s
+
+Step 3. Convert to Mbit/s.
+B_peak = **5.12 Mbit/s**
+
+### 4c. Burst-to-mean ratio
+
+B_peak / B_mean = 5.12 / 1.024 = **5.0×**
+
+### 4d. Can I²C absorb the burst?
+
+I²C cap is 3.4 Mbit/s. The burst demands 5.12 Mbit/s line rate, so **no**, I²C can't drain the burst in real time. Backlog builds up in the FIFO during the 1 ms window.
+
+**Compute the overflow:**
+
+Step 1. Bits arriving during the burst.
+arrive = B_peak × 1 ms = 5.12 × 10⁶ × 10⁻³ = 5,120 bits
+
+Step 2. Bits draining during the burst at I²C line rate.
+drain = B_I²C × 1 ms = 3.4 × 10⁶ × 10⁻³ = 3,400 bits
+
+Step 3. Backlog = arriving minus draining.
+backlog = 5,120 − 3,400 = **1,720 bits**
+
+Step 4. Convert to packets.
+packets = 1,720 / 20 = 86 packets
+
+Step 5. Round up for safety margin (handle back-to-back bursts).
+**FIFO depth ≥ 128 packets** (next power of 2 above 86).
+
+### 4e. Design choice
+
+Two paths:
+- **I²C + 128-packet FIFO** (cheap I/O, costs ~2.5 kbit of on-chip SRAM)
+- **SPI bare** (50 Mbit/s line rate >> 5.12 Mbit/s burst, no FIFO needed)
+
+So if pin count and pad area are tight, I²C with buffering wins. If you have the pins and want simpler firmware (no overflow management), SPI is the cleaner choice.
+
+---
+
+## 5. Frame-based comparison
+
+**Frame readout spec:** sample all N neurons every T_frame = 1 ms, 1 bit per neuron per sample.
+
+### 5a. Frame-based bandwidth
+
+Step 1. Frames per second.
+1 / T_frame = 1 / 0.001 s = 1000 frames/s
+
+Step 2. Bits per frame = N (one bit per neuron).
+bits/frame = 1024
+
+Step 3. Frame bandwidth.
+B_frame = 1024 × 1000 × 1 = 1,024,000 bits/s = **1.024 Mbit/s**
+
+### 5b. AER-to-frame ratio at f = 50 Hz
+
+B_AER / B_frame = 1.024 / 1.024 = **1.0×** (exactly tied at f = 50 Hz)
+
+### 5c. Crossover firing rate f_crossover
+
+Set the two bandwidths equal and solve for f.
+
+Step 1. Write both bandwidths as functions of f.
+B_AER(f) = N × f × 20 bits/s
+B_frame  = N × (1 / T_frame) × 1 bit = N × 1000 bits/s (using T_frame = 1 ms)
+
+Step 2. Set them equal.
+N × f × 20 = N × 1000
+
+Step 3. Cancel N from both sides.
+20 × f = 1000
+
+Step 4. Solve for f.
+f = 1000 / 20 = **50 Hz**
+
+So **f_crossover = 50 Hz**.
+
+### 5d. One-sentence implication
+
+AER beats frame-based readout only when the mean firing rate is below 50 Hz, so AER is the right choice for sparse-firing SNNs (typical biological rates are 1 to 10 Hz, well below the crossover), but a frame-based bus becomes more bandwidth-efficient for dense or high-activity networks above 50 Hz.
