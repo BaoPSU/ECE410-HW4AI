@@ -11,7 +11,7 @@ This folder contains the M3 deliverables: an integrated top module that wires th
 | Path | What it is |
 |------|------------|
 | `README.md` | This file — index of every M3 deliverable |
-| `milestone_3_brief.pdf` | Instructor's M3 deliverables and checklist (reference) |
+| `hw4ai_ece510_project_milestone_3_spring26_r1.pdf` | Instructor's M3 deliverables and checklist (reference) |
 | `rtl/top.sv` | Integrated top module. Instantiates `axil_slave_int` only (slave instantiates the compute core directly); external ports are AXI4-Lite + clk/rst_n |
 | `rtl/axil_slave_int.sv` | AXI4-Lite slave with integer register map (RGB packed in 32-bit words, 18-bit RESULT_DIST). M3 evolution of `project/m2/rtl/axil_slave.sv`, which was wired for float32 |
 | `rtl/kmeans_dist_core_pipelined.sv` | 3-stage pipelined integer compute core: kdist compute → argmin levels 1-2 → argmin levels 3-4. DIST_W=18 (dropped from 20 per CF07 STA — `min_dist[18:19]` always zero) |
@@ -23,10 +23,19 @@ This folder contains the M3 deliverables: an integrated top module that wires th
 | `sim/cosim_waveform.png` | Annotated end-to-end waveform with the 5 phases labeled |
 | `synth/config.json` | OpenLane 2 configuration: clock 10 ns, source list of all 3 RTL files |
 | `synth/openlane_run.log` | Full OpenLane 2 stdout/stderr |
-| `synth/timing_report.txt` | STA report: WNS, TNS, setup/hold check counts, achieved clock period |
-| `synth/area_report.txt` | Yosys post-synth area + cell-count report |
+| `synth/yosys_synthesis.log` | Full yosys synthesis log (cell mapping, optimization passes) |
+| `synth/timing_report.txt` | Synth-stage timing analysis. No post-PnR STA because the OpenLane checker blocked PnR — explained inside |
+| `synth/area_report.txt` | Yosys post-synth area + cell-count report (sky130 cells) |
 | `synth/critical_path.md` | Critical path: start register, end register, logic stages, why it's the longest |
-| `synth/power_report.txt` | Power estimate (or documented failure mode for M4 follow-up) |
+| `synth/power_report.txt` | Power estimation attempt + failure mode, M4 follow-up plan |
+| `synth/metrics.csv` | OpenLane curated metrics (one metric per row) |
+| `synth/metrics.json` | OpenLane curated metrics (JSON form, includes `design__instance__area` etc.) |
+| `synth/top.nl.v` | Post-techmap netlist (synthesized gate-level Verilog) |
+| `synth/pre_techmap_stat.txt` | Yosys cell counts before sky130 mapping (raw gate stats) |
+| `synth/v2005/top.v` | Verilog-2005 port of `rtl/top.sv` (yosys default frontend can't ingest the SystemVerilog version's unpacked-array ports — same lesson as CF07) |
+| `synth/v2005/axil_slave_int.v` | Verilog-2005 port of `rtl/axil_slave_int.sv`. Uses a flat `case` over `wr_addr[11:0]` for the address decode instead of a `task` + loop (cleaner for yosys) |
+| `synth/v2005/kmeans_dist_core_pipelined.v` | Verilog-2005 port of `rtl/kmeans_dist_core_pipelined.sv` with flat packed buses (`pixel_flat`, `centroids_flat`) instead of unpacked array ports |
+| `synth/.gitignore` | Excludes the bulky `runs/` directory (only curated reports are committed) |
 | `synthesis_notes.md` | ≥500-word narrative: what synthesized, what didn't, scope adjustments, M4 forward plan |
 
 ---
