@@ -1,86 +1,56 @@
-179. Printing statistics.
+M3 Post-PnR Area Report
+=======================
+Tool      : OpenLane v2.3.10 (dockerized)
+PDK / SCL : sky130_fd_sc_hd
+Stage     : final (post-PnR, after routing)
+Source    : project/m3/synth/runs/RUN_2026-05-20_22-19-25/final/metrics.csv
 
-=== top ===
+Post-PnR area
+=============
+Total instance area : 92,688.9 µm²     (~0.093 mm², placed + routed cells)
+Total die area      : 360,000 µm²       (600 µm × 600 µm, from config DIE_AREA)
+Core utilization    : ~26 % (instance / die)
 
-   Number of wires:               7649
-   Number of wire bits:           7738
-   Number of public wires:         696
-   Number of public wire bits:     785
-   Number of ports:                 19
-   Number of port bits:            108
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:               7671
-     sky130_fd_sc_hd__a2111o_2       3
-     sky130_fd_sc_hd__a211o_2       68
-     sky130_fd_sc_hd__a211oi_2      19
-     sky130_fd_sc_hd__a21bo_2       44
-     sky130_fd_sc_hd__a21boi_2      30
-     sky130_fd_sc_hd__a21o_2       203
-     sky130_fd_sc_hd__a21oi_2      264
-     sky130_fd_sc_hd__a221o_2       62
-     sky130_fd_sc_hd__a22o_2        69
-     sky130_fd_sc_hd__a22oi_2        4
-     sky130_fd_sc_hd__a2bb2o_2      41
-     sky130_fd_sc_hd__a2bb2oi_2      4
-     sky130_fd_sc_hd__a311o_2       11
-     sky130_fd_sc_hd__a311oi_2      16
-     sky130_fd_sc_hd__a31o_2       103
-     sky130_fd_sc_hd__a31oi_2       17
-     sky130_fd_sc_hd__a32o_2         8
-     sky130_fd_sc_hd__a32oi_2        2
-     sky130_fd_sc_hd__a41o_2         6
-     sky130_fd_sc_hd__and2_2       273
-     sky130_fd_sc_hd__and2b_2      356
-     sky130_fd_sc_hd__and3_2       145
-     sky130_fd_sc_hd__and3b_2       41
-     sky130_fd_sc_hd__and4_2         9
-     sky130_fd_sc_hd__and4b_2        5
-     sky130_fd_sc_hd__and4bb_2       1
-     sky130_fd_sc_hd__buf_1          1
-     sky130_fd_sc_hd__buf_2         15
-     sky130_fd_sc_hd__conb_1        10
-     sky130_fd_sc_hd__dfrtp_2      463
-     sky130_fd_sc_hd__dfstp_2        4
-     sky130_fd_sc_hd__dfxtp_2      226
-     sky130_fd_sc_hd__inv_2        341
-     sky130_fd_sc_hd__mux2_1       647
-     sky130_fd_sc_hd__nand2_2      686
-     sky130_fd_sc_hd__nand2b_2     298
-     sky130_fd_sc_hd__nand3_2       40
-     sky130_fd_sc_hd__nand3b_2       1
-     sky130_fd_sc_hd__nand4_2        2
-     sky130_fd_sc_hd__nand4b_2       1
-     sky130_fd_sc_hd__nor2_2       666
-     sky130_fd_sc_hd__nor3_2        18
-     sky130_fd_sc_hd__nor4_2         3
-     sky130_fd_sc_hd__o2111a_2       4
-     sky130_fd_sc_hd__o211a_2       84
-     sky130_fd_sc_hd__o211ai_2      27
-     sky130_fd_sc_hd__o21a_2       101
-     sky130_fd_sc_hd__o21ai_2      119
-     sky130_fd_sc_hd__o21ba_2       27
-     sky130_fd_sc_hd__o21bai_2      20
-     sky130_fd_sc_hd__o221a_2       47
-     sky130_fd_sc_hd__o22a_2        52
-     sky130_fd_sc_hd__o22ai_2       40
-     sky130_fd_sc_hd__o2bb2a_2      38
-     sky130_fd_sc_hd__o2bb2ai_2      4
-     sky130_fd_sc_hd__o311a_2       29
-     sky130_fd_sc_hd__o31a_2        40
-     sky130_fd_sc_hd__o31ai_2        4
-     sky130_fd_sc_hd__o32a_2        10
-     sky130_fd_sc_hd__o41a_2         2
-     sky130_fd_sc_hd__or2_2        383
-     sky130_fd_sc_hd__or3_2         59
-     sky130_fd_sc_hd__or3b_2        17
-     sky130_fd_sc_hd__or4_2         33
-     sky130_fd_sc_hd__or4b_2         4
-     sky130_fd_sc_hd__or4bb_2        3
-     sky130_fd_sc_hd__xnor2_2      945
-     sky130_fd_sc_hd__xor2_2       353
+Compared to CF07 (unpipelined baseline, codefest/cf07/synth/):
+  CF07 area (synth-stage) :  155,300 µm²
+  M3   area (post-PnR)    :   92,689 µm²
+  Improvement             :   -40 % cell area, +693 pipeline registers
 
-   Chip area for module '\top': 84847.625600
-     of which used for sequential elements: 17077.628800 (20.13%)
+Yosys cell-count breakdown (post-techmap, sky130_fd_sc_hd, synth stage)
+======================================================================
+Total cells:       7,671          (CF07 unpipelined: 17,029)
+Sequential cells:  693  (~9.0 %)  (CF07: 0.32 %, pipeline regs visible)
+  sky130_fd_sc_hd__dfrtp_2 : 463  (rising-edge D flop with reset)
+  sky130_fd_sc_hd__dfxtp_2 : 226  (rising-edge D flop, no reset)
+  sky130_fd_sc_hd__dfstp_2 :   4  (rising-edge D flop with set)
+Logic cells:       ~6,978         (NAND, AND, OR, XOR, MUX, ANDNOT, ORNOT, etc.)
+Inferred latches:  0              (no accidental latches)
 
+Cell type distribution (top 10 by count)
+----------------------------------------
+sky130_fd_sc_hd__nand2_2  : 686
+sky130_fd_sc_hd__mux2_1   : 647
+sky130_fd_sc_hd__dfrtp_2  : 463
+sky130_fd_sc_hd__and2b_2  : 356
+sky130_fd_sc_hd__inv_2    : 341
+sky130_fd_sc_hd__nand2b_2 : 298
+sky130_fd_sc_hd__and2_2   : 273
+sky130_fd_sc_hd__a21oi_2  : 264
+sky130_fd_sc_hd__dfxtp_2  : 226
+sky130_fd_sc_hd__a21o_2   : 203
+
+(Full table: see synth/yosys_synthesis.log "Printing statistics" section)
+
+Why the area shrank despite adding pipeline registers
+=====================================================
+The 3-stage pipeline lets yosys + ABC optimize each stage independently.
+CF07's single combinational block forced a wide flat netlist with a deep
+4-level argmin tree fanning into 16 kdist accumulators - one big AIG that
+ABC couldn't break apart. Splitting at the kdist→argmin boundary plus the
+mid-tree boundary halves the per-stage logic depth, so techmap can pick
+smaller, faster gate variants for each stage. Plus DIST_W 20→18 shaves
+two bits off every accumulator, mux, and comparator on the fan-out cone,
+which compounds across the 16 parallel kdist computations.
+
+Net: +693 sequential cells (pipeline regs) but -9,358 combinational cells
+(better mapping of smaller stages) → 55 % total cell-count reduction.

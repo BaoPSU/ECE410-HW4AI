@@ -24,10 +24,10 @@ This folder contains the M3 deliverables: an integrated top module that wires th
 | `synth/config.json` | OpenLane 2 configuration: clock 10 ns, source list of all 3 RTL files |
 | `synth/openlane_run.log` | Full OpenLane 2 stdout/stderr |
 | `synth/yosys_synthesis.log` | Full yosys synthesis log (cell mapping, optimization passes) |
-| `synth/timing_report.txt` | Synth-stage timing analysis. No post-PnR STA because the OpenLane checker blocked PnR — explained inside |
-| `synth/area_report.txt` | Yosys post-synth area + cell-count report (sky130 cells) |
+| `synth/timing_report.txt` | **Post-PnR STA report (OpenROAD).** WNS = 0.0 ns / TNS = 0.0 ns at typical+fast corners with +3.13 ns positive slack. Slow-slow corner misses by ~3 ns (documented inside). |
+| `synth/area_report.txt` | **Post-PnR area** 92,689 µm² (~0.093 mm²) in a 600×600 µm die. Yosys + sky130 cell breakdown also included. |
 | `synth/critical_path.md` | Critical path: start register, end register, logic stages, why it's the longest |
-| `synth/power_report.txt` | Power estimation attempt + failure mode, M4 follow-up plan |
+| `synth/power_report.txt` | **OpenROAD post-PnR power: 5.87 mW** at typical 100 MHz (47% sequential, 51% clock tree, 2% combinational). |
 | `synth/metrics.csv` | OpenLane curated metrics (one metric per row) |
 | `synth/metrics.json` | OpenLane curated metrics (JSON form, includes `design__instance__area` etc.) |
 | `synth/top.nl.v` | Post-techmap netlist (synthesized gate-level Verilog) |

@@ -1,43 +1,49 @@
 # Critical Path
 
 **Bao Nguyen | ECE 410/510 Spring 2026**
-*Identified from the RTL pipeline structure; post-PnR confirmation deferred to M4.*
+*From OpenROAD post-PnR STA at typical corner (max_tt_025C_1v80).*
 
 ---
 
+## Result
+
+**Timing closed.** WNS = **0.0 ns**, TNS = **0.0 ns** at the 10 ns / 100 MHz clock target across typical and fast PVT corners. The worst path has **+3.13 ns of positive slack** (the longest path finishes in ~6.87 ns out of the 10 ns budget). Hold checks pass cleanly with 0 ns slack across all corners.
+
 ## The critical path
 
-**Start register:** `axil_slave_int.reg_pixel[d]` (or `reg_centroids[k*D + d]`) — any of the 51 byte registers in the AXI slave's storage block (D=3 pixel bytes + K*D=48 centroid bytes), all written by the same AXI write FSM.
+OpenROAD's STA report (`runs/RUN_2026-05-20_22-19-25/54-openroad-stapostpnr/max_tt_025C_1v80/max.rpt`) flags this as the worst setup-violating path on the design:
 
-**End register:** `kmeans_dist_core_pipelined.s1_kdist[k]` — any of the 16 distance accumulators after Stage 1.
+**Start register:** `_14498_` — a flip-flop inside `axil_slave_int.u_axil` that drives `pixel_flat[0]`. This is the LSB of the broadcast bus going from the slave's pixel/centroid byte storage into the compute core's Stage-1 abs_diff cone.
 
-**Logic stages (Stage 1 combinational cone):**
-1. **Routing fan-out from the slave's storage block** into the compute core's `pixel_flat` and `centroids_flat` packed buses (combinational `generate`-loop wires in the slave).
-2. **Absolute-difference computation per (k, d):**
-   - 3 parallel subtracts per centroid: `pixel[d] - centroid[k][d]` and the reverse
-   - 8-bit signed-comparison mux: `(pixel[d] >= centroid[k][d]) ? a-b : b-a`
-3. **Squaring:** `abs_diff * abs_diff` → 16-bit product. 8×8 → 16 multiplier expanded via partial products + Wallace tree.
-4. **Three-way add:** sum of 3 squared differences per centroid k. Two adders cascaded (16-bit → 18-bit DIST_W).
-5. **Stage-1 register write enable:** kdist[k] latched on the next posedge.
+**End register:** `_14004_` — a flip-flop inside `kmeans_dist_core_pipelined`, one of the 16 Stage-1 `s1_kdist[k]` accumulators that latch the per-centroid squared-distance result on the next clock edge.
 
-**Why it's the longest:**
-- Stage 2 is only an 8-comparator wide × 2-deep argmin tournament — short.
-- Stage 3 is only a 4-input argmin (2 deep) — shorter.
-- Stage 1 carries the full per-centroid arithmetic (subtract → square → 3-input add), and there are **16 of these in parallel** so the fan-out load on the slave's storage block is high. The longest cone is the AND tree feeding the carry propagate of the 3-input adder.
+**Logic stages along the path (from `max.rpt`):**
+1. Clock tree: `clkbuf_0_clk → clkbuf_3_1_0_clk → clkbuf_leaf_10_clk → _14498_/CLK` (~1.1 ns of clock latency)
+2. Flop output: `_14498_/Q` → `u_axil.pixel_flat[0]` net (clock-to-Q ~0.54 ns)
+3. **Pixel-broadcast buffer chain**: `rebuffer4 → rebuffer308 → rebuffer306 → rebuffer302 → fanout293` — five buffer/repeater inserts the placer added to fan out the pixel byte from the slave to all 16 parallel abs_diff blocks in the compute core. Each ~0.10–0.14 ns.
+4. **Stage-1 abs_diff cone**: inverter `_07091_` plus AND-OR gates feeding the subtractor for one of the 16 centroids.
+5. **Squaring**: 8×8 → 16-bit multiplier expanded into partial-product AND gates + adder tree.
+6. **3-input add** for the per-centroid kdist accumulator (Σ_d (pixel[d] − cent[k][d])²).
+7. Setup at `_14004_/D` → captured on next clk edge.
 
-**Comparison to CF07 (unpipelined):**
+**Total path delay**: 10 ns − 3.13 ns slack ≈ 6.87 ns.
 
-| | CF07 (unpipelined) | M3 Stage 1 (pipelined) |
-|---|---|---|
-| Combinational depth | abs_diff → sq → 3-input add → 4-level argmin tree | abs_diff → sq → 3-input add (only) |
-| Logic stages | ~12-14 | ~6-7 |
-| Measured WNS (CF07 STA) | −31.53 ns at 10 ns target | (not measured — PnR blocked) |
-| Estimated post-PnR delay | 41.53 ns | ~13.8 ns (CF07 path ÷ 3) → ≤ 10 ns after PnR balancing |
+## Why this is the longest path
+
+- Stage 1 carries the **subtract → square → 3-input add** chain, the deepest arithmetic in the design.
+- The **pixel-broadcast bus** to 16 parallel abs_diff blocks has high fan-out (16 destinations), so the placer needed 5 buffer/repeater inserts on this net alone. Those buffers contribute ~0.5 ns combined.
+- Stage 2 and Stage 3 (argmin tree) are 2-deep mux comparisons each, much shorter.
+
+Predicted in `critical_path.md` (pre-STA): "Stage 1 carries the full per-centroid arithmetic (subtract → square → 3-input add), and there are 16 of these in parallel so the fan-out load on the slave's storage block is high." OpenROAD's STA confirmed exactly this: the fan-out buffer chain to the 16 abs_diff blocks shows up as 5 explicit buffer cells on the critical path.
 
 ## What would shorten this path further (M4+ work)
 
-1. **Pipeline the multiplier itself.** Currently the 8×8 → 16 multiplier sits in the same Stage 1 cone as the 3-input add. Putting a register between the squaring and the accumulate would split Stage 1 into 1a (subtract + square) and 1b (accumulate), at the cost of one more cycle of latency. Throughput stays at 1 sample/cycle, and the per-stage logic depth drops to ~3-4 stages.
-2. **Carry-save adders for the 3-input add.** Replace the cascaded 2-input adders with a 3:2 carry-save compressor followed by a final 2-input add. Saves ~1 ripple-carry chain length on the longest path.
-3. **Brent-Kung / Kogge-Stone for the final add.** The 18-bit add tree at the end of Stage 1 is currently using whatever ripple-carry adder yosys infers. A prefix-tree adder is logarithmic-depth instead of linear and would shave another 2-3 ns at the 18-bit width.
+1. **Pipeline the multiplier itself.** Put a register between the squaring and the accumulate. Splits Stage 1 into 1a (subtract + square) and 1b (accumulate); per-stage logic depth drops to ~3-4 gates. Cost: +1 cycle of latency.
+2. **Replicate the pixel register.** Instead of one register fanning out to 16 abs_diff blocks (5 buffer inserts), keep 16 copies in the slave so each abs_diff has its own dedicated driver. Trades flop area for wire delay.
+3. **Carry-save adder for the 3-input add.** Replace cascaded 2-input adders with a 3:2 CSA + final 2-input add. Saves ~1 ripple-carry chain length.
 
-None of these are needed for M3 timing closure if the 3-stage partition already hits ≤ 10 ns per stage. They are M4 levers if Fmax has to push past 100 MHz, which the M1 PIM chiplet I/O budget does not require (the 16 TB/s HBM3 link sits at the 100 MHz interface clock already).
+None are needed to close timing at typical conditions, where the design already has 3.13 ns of headroom. M4 might revisit (2) to close the slow-slow corner if the package thermal/voltage budget pushes toward SS-1v60 worst case.
+
+## Slow-slow corner failure (documented, not a blocker)
+
+At nom_ss_100C_1v60 (slow process, 100°C, 1.6 V), the same path misses by ~3 ns (WNS = −3.04 ns, TNS = −117 ns). This is normal for an open-source flow without margin engineering — closing all corners typically requires either a slower clock (~13 ns / 76 MHz) or path-level retiming. The M1 PIM chiplet I/O budget specifies 100 MHz at nominal conditions, which the design meets; SS closure is an M4 polish step, not an M3 deliverable.
