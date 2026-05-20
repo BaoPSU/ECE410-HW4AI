@@ -8,6 +8,21 @@
 - Packet = 10-bit address + 6-bit timestamp + 4-bit framing/parity = 20 bits total
 - Firing is Poisson-like, independent across neurons
 
+**Data-flow picture (whole problem at a glance):**
+
+```
+   1024 neurons          51,200 spikes/s         1.024 Mbit/s
+   ┌──────────┐  spike   ┌──────────────┐  20b   ┌──────────┐
+   │ neuron 0 │ ───────► │              │ ─────► │          │
+   │ neuron 1 │ ───────► │  AER encoder │ ─────► │ off-chip │
+   │   ...    │ ───────► │ (addr+ts+pty)│ ─────► │   bus    │
+   │neuron1023│ ───────► │              │ ─────► │          │
+   └──────────┘          └──────────────┘        └──────────┘
+       each fires            packs each            output to
+       at f = 50 Hz          spike into            host (SPI,
+                             20-bit packet         I²C, AXI4-Lite)
+```
+
 ---
 
 ## 1. Mean aggregate spike rate R
@@ -47,6 +62,17 @@ B = 1,024,000 bits/second
 Step 3. Convert bits/s → Mbit/s (divide by 10⁶).
 B = 1,024,000 / 1,000,000 = **1.024 Mbit/s**
 
+**Packet layout (20 bits = 2.5 bytes):**
+
+```
+   bit:  19          10  9        4  3      0
+        ┌─────────────┬────────────┬────────┐
+        │  ADDR (10b) │  TS (6b)   │ PTY 4b │
+        └─────────────┴────────────┴────────┘
+         which neuron    when         framing/
+         (0..1023)       (mod 64)     parity
+```
+
 ---
 
 ## 3. Interface comparison
@@ -58,6 +84,16 @@ Compute the **headroom** (interface max / required B) for each candidate. If the
 | I²C       | ≤ 3.4 Mbit/s  | 3.4 / 1.024 = 3.32×    | **YES**      | 2-wire bus, lowest complexity |
 | SPI       | ≤ 50 Mbit/s   | 50 / 1.024 = 48.83×    | **YES**      | 4-wire, full-duplex |
 | AXI4-Lite | ~100 Mbit/s   | 100 / 1.024 = 97.66×   | **YES**      | Bus-fabric, highest complexity |
+
+**Visual: where the 1.024 Mbit/s need lands on each interface's capacity bar.**
+
+```
+Need = 1.024 Mbit/s  (▓ = used,  · = headroom)
+
+I²C       3.4 Mbit/s  ▓▓▓▓····················     3.32× headroom ✓
+SPI       50  Mbit/s  ▓···························  48.83× headroom ✓
+AXI4-Lite 100 Mbit/s  ▓···························  97.66× headroom ✓
+```
 
 **Lowest-complexity interface that suffices: I²C.**
 
@@ -121,6 +157,29 @@ Two paths:
 
 So if pin count and pad area are tight, I²C with buffering wins. If you have the pins and want simpler firmware (no overflow management), SPI is the cleaner choice.
 
+### 4f. Timing diagram (1 ms burst, I²C path)
+
+```
+                ┌─── 1 ms burst window ───┐
+spikes in:      ████████████████████████░░░░░░░░░░░░░░░░  ← 256 spikes (5.12 Mbit/s)
+I²C drain out:  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░  ← 3.4 Mbit/s continuous
+
+FIFO depth
+(bits)
+  1720 ┤                          █
+       │                       ███
+  1200 ┤                    ████
+       │                  ███
+   600 ┤                ██
+       │             ███
+     0 ┤━━━━━━━━━━━━━                 ░░░░░░░░░░
+       └─────────────┬─────────────┬─────────────►  time
+       0          burst end       drain end
+                  (1 ms)         (~1.5 ms)
+```
+
+So the FIFO fills up to 1,720 bits (86 packets) at burst end, then drains over the next ~0.5 ms once arrivals slow back to the mean rate. **128-packet FIFO** = 2,560 bits gives ~50% safety margin for back-to-back bursts.
+
 ---
 
 ## 5. Frame-based comparison
@@ -161,6 +220,44 @@ f = 1000 / 20 = **50 Hz**
 
 So **f_crossover = 50 Hz**.
 
-### 5d. One-sentence implication
+### 5d. Crossover plot (B vs firing rate f)
+
+```
+B (Mbit/s)
+  ▲
+3 ┤                              ╱  B_AER = N·f·20  (slope = 20.48 kbit/s per Hz)
+  │                            ╱
+  │                          ╱
+2 ┤                        ╱
+  │                      ╱
+  │                    ╱   ◄── crossover at f = 50 Hz, B = 1.024 Mbit/s
+1 ┤━━━━━━━━━━━━━━━━━━╱━━━━━━━━━━━━━━━━━━━━━━━━━━━  B_frame = 1.024 Mbit/s (flat)
+  │                ╱
+  │             ╱
+0 ┤━━━━━━━╱━━━━━┴───────┬────────┬────────┬───►
+  0     25     50      75      100    125  f (Hz)
+
+  AER wins ◄────────────┼────────────► frame wins
+  (below 50 Hz)         │           (above 50 Hz)
+                  crossover
+```
+
+The biological-rate regime (1 to 10 Hz) sits **way left** of the crossover, so AER's bandwidth is 5× to 50× lower than frame for that range. That's the regime neuromorphic chips are actually designed for.
+
+### 5e. One-sentence implication
 
 AER beats frame-based readout only when the mean firing rate is below 50 Hz, so AER is the right choice for sparse-firing SNNs (typical biological rates are 1 to 10 Hz, well below the crossover), but a frame-based bus becomes more bandwidth-efficient for dense or high-activity networks above 50 Hz.
+
+---
+
+## Summary table (all 5 tasks at a glance)
+
+| # | Quantity                       | Formula                              | Value         |
+|---|--------------------------------|--------------------------------------|---------------|
+| 1 | Mean aggregate spike rate R    | N × f                                | 51,200 spikes/s |
+| 2 | Mean AER bandwidth B           | R × 20 bits                          | **1.024 Mbit/s** |
+| 3 | Lowest-complexity interface    | check headroom ≥ 1                   | **I²C** (3.32× headroom) |
+| 4 | Burst peak bandwidth           | 256 spikes × 20 bits / 1 ms          | 5.12 Mbit/s (5.0× mean) |
+| 4 | FIFO depth (if I²C path)       | (B_peak − B_I²C) × 1 ms / 20 bits    | 86 packets → **128 for safety** |
+| 5 | Frame-based bandwidth          | N × (1/T_frame) × 1 bit              | 1.024 Mbit/s |
+| 5 | Crossover firing rate          | 20·f = 1/T_frame → f = 50 Hz         | **f_crossover = 50 Hz** |
