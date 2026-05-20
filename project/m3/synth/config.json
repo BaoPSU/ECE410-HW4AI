@@ -1,0 +1,17 @@
+{
+  "DESIGN_NAME": "top",
+  "VERILOG_FILES": [
+    "dir::v2005/kmeans_dist_core_pipelined.v",
+    "dir::v2005/axil_slave_int.v",
+    "dir::v2005/top.v"
+  ],
+  "CLOCK_PORT": "clk",
+  "CLOCK_PERIOD": 10.0,
+  "PNR_SDC_FILE": null,
+  "FP_SIZING": "absolute",
+  "DIE_AREA": "0 0 600 600",
+  "FP_CORE_UTIL": 40,
+  "PL_TARGET_DENSITY_PCT": 50,
+  "DESIGN_IS_CORE": true,
+  "RUN_HEURISTIC_DIODE_INSERTION": false
+}

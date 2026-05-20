@@ -1,0 +1,4 @@
+# OpenLane run output trees - large and reproducible from config.json.
+# Keep only the curated reports copied up into synth/ for the grader.
+runs/
+typescript
