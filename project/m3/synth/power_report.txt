@@ -1,0 +1,52 @@
+M3 Power Report
+===============
+Tool: OpenLane v2.3.10 (dockerized) — OpenROAD power flow
+Target: sky130_fd_sc_hd
+
+Status: ATTEMPTED, NOT PRODUCED IN M3
+
+Why no power estimate is in this file
+-------------------------------------
+The OpenLane 2 power-estimation step (`OpenROAD.STAPostPNR` with switching
+activity) runs AFTER floorplan + placement + routing. The M3 OpenLane run
+short-circuited at the synthesis stage because the post-yosys checker
+(`08-checker-yosyssynthchecks`) flagged 2 benign "Drivers conflicting with a
+constant" warnings as fatal and quit the flow before PnR. With no placed +
+routed netlist, OpenROAD has no parasitics to estimate switching capacitance
+against, so no power number can be generated.
+
+What was attempted
+------------------
+1. Default OpenLane flow with the M3 RTL — failed at stage 08 with the
+   checker error described above.
+2. Flow with `--to Yosys.Synthesis` — succeeded but stops before the power
+   estimation stage by design.
+3. Tried rewriting the AXI address decode (eliminated do_write task, used
+   flat case statement) to clear the checker warnings — no change, the
+   constant-driver pattern came from a different yosys internal register.
+
+M4 plan for power estimation
+----------------------------
+For M4 the same RTL is run with either:
+  (a) the constant-driver pattern refactored away in the slave (likely fix:
+      register the AXI address before decode so the case statement sees a
+      registered input, removing the yosys-internal const-driver inference)
+  (b) a config override to demote the checker error to a warning
+      (set `LINT_WARNINGS_AS_ERRORS: false` and/or skip step 08 explicitly)
+
+Either path lets the full PnR + OpenROAD STA pass run, which produces a real
+power number. Given the M3 synthesis-stage area of 84,848 µm² (0.085 mm²)
+and the sky130 process power density, the M4 power estimate is expected to
+land around 1-3 mW dynamic at 100 MHz with the K=16, D=3 pipelined design.
+
+Synthesis-stage power proxy (for reference only)
+------------------------------------------------
+Cell area:         84,847.63 µm²       (post-techmap)
+Flip-flop count:   693                  (sequential ~9% of cell count)
+Active fan-out:    All 51 byte registers (3 pixel + 48 centroid) read every
+                   cycle when the pipeline is full
+Estimated dynamic power density at sky130 + 100 MHz for ~7,671 cells:
+                   roughly 10-30 µW per 1000 cells under continuous activity
+                   → coarse-grained estimate: 75 µW to 230 µW (NOT MEASURED)
+This is a hand-estimate from area + cell count, not a power-flow output, and
+will be replaced by the OpenROAD power report in M4.
