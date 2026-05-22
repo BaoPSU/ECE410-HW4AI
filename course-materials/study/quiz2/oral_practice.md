@@ -30,7 +30,7 @@ The point is sneak paths are a physical consequence of the crossbar topology and
 
 ## Q3. Why are transformers not recurrent and why does that matter?
 
-A transformer replaces recurrence with self-attention. Instead of processing tokens one at a time and passing a hidden state forward, it processes all tokens simultaneously in parallel and lets every token attend directly to every other token in one operation.
+A transformer replaces recurrence, which is the idea of processing one token at a time and passing a hidden state forward to the next step, with self-attention. Instead it processes all tokens at the same time in parallel and lets every token attend directly to every other token in one operation.
 
 The reason that matters is parallelism. RNNs cannot parallelize over the time dimension because each step depends on the previous one. A transformer has no such dependency, so the entire sequence can be computed at once on a GPU, which is what makes training on large datasets feasible.
 
