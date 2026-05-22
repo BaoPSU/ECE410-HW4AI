@@ -8,7 +8,7 @@
 
 A crossbar is a 2D grid of resistive memory cells where rows carry input voltages and columns collect output currents, and the weights are programmed as conductances at each intersection.
 
-The way it does matrix-vector multiplication comes straight from Ohm's law and Kirchhoff's current law. Each cell computes I equals G times V, so the current at each junction is the input voltage multiplied by the conductance. Then all the currents on a column add up automatically by Kirchhoff, so each column output is the full dot product for that output neuron. The whole MVM happens in one read cycle.
+The way it does matrix-vector multiplication comes straight from Ohm's law and Kirchhoff's current law. Each cell multiplies the input voltage by its conductance (I = G × V), and all those currents sum down the column automatically via Kirchhoff, so each column output is the full dot product for that output neuron. The whole MVM happens in one read cycle.
 
 In my K-Means project I found the distance kernel was memory-bound at 1.68 FLOP/byte, way below the ridge point, because I kept having to go back to DRAM for every access. A crossbar flips that by doing the computation inside the memory itself, which is exactly what I was trying to achieve by offloading to a near-memory PIM chiplet.
 
@@ -88,7 +88,7 @@ The point is specialized hardware is the only way to close the gap between what 
 
 ## Q8. How does a crossbar handle negative weights?
 
-A crossbar does MVM via I equals G times V, and conductance G is always positive. There is no such thing as a negative resistor. But neural network weights need to be signed to represent both excitatory and inhibitory synapses.
+A crossbar does MVM by having each cell multiply the input voltage by its conductance (I = G × V), and conductance is always positive. There is no such thing as a negative resistor. But neural network weights need to be signed to represent both excitatory and inhibitory synapses.
 
 The most common fix is the differential pair approach. Each weight is stored across two memristor columns, G-plus and G-minus, and the weight is computed as G-plus minus G-minus. The output current is the difference of the two column currents, which gives you a clean signed result using the same crossbar primitive. The cost is roughly twice the area.
 
