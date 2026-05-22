@@ -148,7 +148,9 @@ Use the K-Means image quantization accelerator project when relevant. Key facts:
 - **Spell out acronyms on first use** — write the full name in parentheses the first time. After that, use the acronym freely.
 - **No bullet dumps** — do not list definitions back to back. Connect ideas with transitions.
 - **No dashes or colons in your spoken answer** — write in flowing prose only. Dashes and colons are writing punctuation, not speaking punctuation.
-- **Minimum filler** — skip "I think", "basically", "kind of". Be direct.
+- **Minimum filler** — skip "I think", "kind of". Be direct.
+- **Vary wording naturally** — alternate "simultaneously" with "at the same time", alternate "nearby" with "adjacent" rather than always saying "neighboring". Small variation makes the answer sound more natural and less rehearsed.
+- **Inline short definitions for jargon** — if you use a term the professor might ask about, drop a quick explanation in the same sentence. For example "the sense amplifier, which is the readout circuit at the bottom of each column that converts current into an output value" or "recurrence, which is the idea of processing one token at a time and passing a hidden state forward." Then continue the answer without breaking flow.
 - **Include equations for concept-level formulas** — AI = FLOPs / Bytes, ridge point = Peak / BW. These are small and show understanding.
 - **Skip specific chip numbers** — do not cite exact TFLOPS ratings, exact array dimensions, or exact cycle counts. These are unrealistic to recall and look like memorization. Explain the principle and ratio instead.
 - **Always relate to the K-Means project** — every answer should have a K-Means example. The distance kernel (AI = 1.68 FLOP/byte, ridge point = 18.23, near-memory PIM fix) connects to almost every topic.
