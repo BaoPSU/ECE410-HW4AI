@@ -123,9 +123,10 @@ One specific example from the course or K-Means project. This is the piece most 
 > "A good example is from my K-Means project — the distance kernel was memory-bound at 1.68 FLOP/byte, so I offloaded it to a near-memory PIM chiplet where the bandwidth clears the ridge point."
 
 ### 4. Close with the big picture
-One sentence on how it all fits together or why it matters. Always open this sentence with "The point is" instead of "The main takeaway is."
+One sentence on how it all fits together or why it matters. Open this sentence with either "The point is" or "Essentially" — vary between the two. Never use "The main takeaway is."
 
 > "The point is the whole design is built around one idea — keep the CUDA cores and Tensor cores busy at all times by switching warps to cover for inevitable memory stalls."
+> "Essentially the GPU hides latency by keeping enough warps in flight that there is always useful work to do."
 
 ---
 
@@ -147,7 +148,7 @@ Use the K-Means image quantization accelerator project when relevant. Key facts:
 - **Spell out acronyms on first use** — write the full name in parentheses the first time. After that, use the acronym freely.
 - **No bullet dumps** — do not list definitions back to back. Connect ideas with transitions.
 - **No dashes or colons in your spoken answer** — write in flowing prose only. Dashes and colons are writing punctuation, not speaking punctuation.
-- **Minimum filler** — skip "I think", "basically", "kind of", "essentially". Be direct.
+- **Minimum filler** — skip "I think", "basically", "kind of". Be direct.
 - **Include equations for concept-level formulas** — AI = FLOPs / Bytes, ridge point = Peak / BW. These are small and show understanding.
 - **Skip specific chip numbers** — do not cite exact TFLOPS ratings, exact array dimensions, or exact cycle counts. These are unrealistic to recall and look like memorization. Explain the principle and ratio instead.
 - **Always relate to the K-Means project** — every answer should have a K-Means example. The distance kernel (AI = 1.68 FLOP/byte, ridge point = 18.23, near-memory PIM fix) connects to almost every topic.
