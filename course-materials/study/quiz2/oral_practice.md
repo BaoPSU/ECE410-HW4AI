@@ -34,7 +34,7 @@ A transformer replaces recurrence, which is the idea of processing one token at 
 
 The reason that matters is parallelism. RNNs cannot parallelize over the time dimension because each step depends on the previous one. A transformer has no such dependency, so the entire sequence can be computed at once on a GPU, which is what makes training on large datasets feasible.
 
-The tradeoff is that without positional recurrence you lose the natural sense of order, so positional encodings using sine and cosine functions are added to give the model a notion of where each token sits in the sequence.
+The tradeoff is that without positional recurrence you lose the natural sense of order, so positional encodings using sine and cosine functions are added to give the model a sense of where each token sits in the sequence.
 
 The point is replacing recurrence with self-attention is what unlocked the scale of modern LLMs because it made the architecture fully parallelizable on GPU hardware.
 
