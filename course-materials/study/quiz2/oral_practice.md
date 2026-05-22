@@ -88,7 +88,7 @@ The point is specialized hardware is the only way to close the gap between what 
 
 ## Q8. How does a crossbar handle negative weights?
 
-A crossbar does MVM by having each cell multiply the input voltage by its conductance (I = G × V), and conductance is always positive. There is no such thing as a negative resistor. But neural network weights need to be signed to represent both excitatory and inhibitory synapses.
+A crossbar does MVM by having each cell multiply the input voltage by its conductance (I = G × V), and conductance is always positive. There is no such thing as a negative resistor. But neural network weights need to be signed to represent both positive and negative connections (excitatory and inhibitory synapses).
 
 The most common fix is the differential pair approach. Each weight is stored across two memristor columns, G-plus and G-minus, and the weight is computed as G-plus minus G-minus. The output current is the difference of the two column currents, which gives you a clean signed result using the same crossbar primitive. The cost is roughly twice the area.
 
