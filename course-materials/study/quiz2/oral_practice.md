@@ -78,7 +78,7 @@ The point is BF16 is a drop-in replacement for FP32 in training because it prese
 
 ## Q7. Why can you not do neuromorphic processing all in software?
 
-The core problem is energy and parallelism. A single DRAM access costs around 2 nanojoules while a single INT4 multiply costs around 0.1 picojoules. That is a gap of roughly twenty thousand times just for one memory access versus one multiply. Scale that to a brain-scale spiking neural network running in real time and the energy cost in software becomes completely infeasible.
+The core problem is energy and parallelism. A single DRAM access costs around 2 nanojoules while a single INT4 multiply costs around 0.1 picojoules. That is a gap of roughly twenty thousand times just for one memory access versus one multiply. Scale that to a brain-scale SNN (Spiking Neural Network, where neurons communicate via discrete spike events rather than continuous values) running in real time and the energy cost in software becomes not viable.
 
 The second problem is parallelism. The brain is massively parallel and event-driven. A CPU is sequential and clock-driven. In software you are still paying full instruction fetch and decode overhead for every neuron every timestep, even though only about one percent of neurons are firing at any given moment. Hardware can gate everything off until a spike arrives. Software cannot.
 
