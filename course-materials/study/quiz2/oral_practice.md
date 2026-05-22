@@ -20,7 +20,7 @@ The point is the crossbar turns a matrix-vector multiply into a physics problem.
 
 A sneak path is an unintended current route through unselected cells in a crossbar array.
 
-When you try to read one cell, floating row and column nodes let current loop through neighboring cells instead of the one you selected. The sense amplifier at the bottom of the column picks up the intended current plus all the sneak current mixed together and you cannot tell them apart. In a large array every floating node adds more sneak loops, so all your dot products come out wrong.
+When you try to read one cell, floating row and column nodes let current loop through nearby cells instead of the one you selected. The sense amplifier, which is the readout circuit at the bottom of each column that converts current into an output value, picks up the intended current plus all the sneak current mixed together and you cannot tell them apart. In a large array every floating node adds more sneak loops, so all your dot products come out wrong.
 
 The fix is either diodes to enforce one-directional current flow, or 1T1R cells where a transistor gate controls which row is active so only the selected row's current flows.
 
