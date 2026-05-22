@@ -56,7 +56,7 @@ The point is the dataflow strategy is a co-design decision and the right choice 
 
 AER stands for Address Event Representation. It is a spike event message-passing protocol used for communication between cores in a neuromorphic chip.
 
-When a neuron fires it does not send the actual spike waveform. It sends its own unique ID as a packet containing the destination core, the neuron ID, and a timestamp. Only active neurons generate messages so the communication is sparse and asynchronous. A routing table at the source core looks up which destinations that neuron connects to and the network interface fans out one packet per destination. The NoC, or Network-on-Chip, routes those packets using XY routing across a 2D mesh topology.
+When a neuron fires it does not send the actual spike waveform. It sends its own unique ID as a packet containing the destination core, the neuron ID, and a timestamp. Only active neurons generate messages so the communication is sparse and asynchronous. A routing table at the source core looks up which destinations that neuron connects to and the network interface sends out one packet per destination. The NoC, or Network-on-Chip, routes those packets using XY routing across a 2D mesh topology.
 
 This is why neuromorphic chips are so energy efficient on sparse workloads. Routers only fire when a spike actually happens so average power stays very low even though peak bandwidth is high.
 
