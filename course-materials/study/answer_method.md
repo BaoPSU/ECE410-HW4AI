@@ -123,9 +123,9 @@ One specific example from the course or K-Means project. This is the piece most 
 > "A good example is from my K-Means project — the distance kernel was memory-bound at 1.68 FLOP/byte, so I offloaded it to a near-memory PIM chiplet where the bandwidth clears the ridge point."
 
 ### 4. Close with the big picture
-One sentence on how it all fits together or why it matters.
+One sentence on how it all fits together or why it matters. Always open this sentence with "The point is" instead of "The main takeaway is."
 
-> "The whole design is built around one idea — keep the CUDA cores and Tensor cores busy at all times by switching warps to cover for inevitable memory stalls."
+> "The point is the whole design is built around one idea — keep the CUDA cores and Tensor cores busy at all times by switching warps to cover for inevitable memory stalls."
 
 ---
 
