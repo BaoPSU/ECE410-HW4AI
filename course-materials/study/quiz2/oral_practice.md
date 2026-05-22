@@ -42,11 +42,11 @@ The point is replacing recurrence with self-attention is what unlocked the scale
 
 ## Q4. Explain the three systolic array dataflows and which one wins on energy.
 
-The three dataflows are weight stationary, output stationary, and row stationary. Each one decides which data type stays fixed in the PEs and which streams through.
+The three dataflows are weight stationary, output stationary, and row stationary. Each one decides which data type stays fixed in the PEs (Processing Elements, the individual compute units in the array) and which streams through.
 
 Weight stationary holds weights in the PEs while activations and partial sums stream through, maximizing weight reuse. That is what Google's TPU uses. Output stationary keeps each PE accumulating one output element. Row stationary keeps one filter row per PE and reuses all three data types as much as possible, which is why it wins on energy. Eyeriss showed roughly ten times fewer DRAM accesses using row stationary compared to the others.
 
-The tradeoff is that each dataflow minimizes movement of one data type at the cost of moving the others more. There is no universally optimal choice, which connects to the No Free Lunch theorem.
+The tradeoff is that each dataflow minimizes movement of one data type at the cost of moving the others more. There is no universally optimal choice, which connects to the No Free Lunch theorem (the idea that no single algorithm or architecture wins on every problem, you always have to match the solution to the specific workload).
 
 The point is the dataflow strategy is a co-design decision and the right choice depends on which data type your hardware can least afford to move.
 
