@@ -204,6 +204,8 @@ Given R[0][0] = 1 kΩ (on), R[0][1] = R[1][0] = 2 kΩ (off), R[1][1] = 1 kΩ (on
 
 <details><summary>Answer</summary>
 
+**Why KCL at V_row1 and V_col1 specifically (the "which nodes" question):** every other node in the 2×2 is pinned by an external source. V_row0 = 1 V is driven, V_col0 = 0 V is held at the sense amp's virtual ground. The only **floating** (undriven) nodes are V_row1 and V_col1, so they are the two unknowns. KCL at each floating node gives one equation per unknown, so two KCL equations is the minimum sufficient system. Writing KCL at a pinned node gives a redundant equation (the voltage is already known); writing KCL elsewhere adds no new information.
+
 Apply KCL at the floating nodes (net current = 0).
 
 **KCL at V_row1**: current in from col1 must equal current out to col0.

@@ -51,6 +51,21 @@ Total:           3N - 2 cycles
 Steady state:    1 result/cycle after fill
 ```
 
+### §3a — CF5 trace: why reset Row 0 partial sums (memorize cold)
+
+For the CF5 2×2 weight-stationary trace: A=[[1,2],[3,4]], B=[[5,6],[7,8]], correct C[1][0]=43.
+
+| Cycle | Event | PE[0][0] partial sum |
+|-------|-------|----------------------|
+| 1 | A[0][0]=1 enters Row 0 | 0 + 1×5 = **5** |
+| 2 | 5 drains to PE[1][0]; A[0][1]=2 enters Row 1 | (used, then **reset to 0** for next output row) |
+| 3 | A[1][0]=3 enters Row 0 | 0 + 3×5 = **15** ✓ correct |
+| 4 | 15 drains to PE[1][0], A[1][1]=4 enters Row 1 | PE[1][0] = 15 + 4×7 = **43** ✓ |
+
+**Without reset between cycle 2 and cycle 3:** PE[0][0] keeps the leftover 5 from cycle 2. Cycle 3 PE[0][0] = 5 + 3×5 = **20**. Cycle 4 PE[1][0] = 20 + 4×7 = **48** → C[1][0]=48 corrupted.
+
+**Error = 48 − 43 = +5 = exactly the leftover partial sum.** That is what "isolating output rows" means in one number.
+
 ---
 
 ## §4 — Three Dataflow Types
