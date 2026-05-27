@@ -33,11 +33,12 @@ ax.plot(ai_range, cpu_roof, 'C0-', lw=2.5, label=f'i9-12900H roofline (peak {CPU
 # Peak compute: K parallel kdist computes/cycle × ops/kdist × clock
 #   = 16 × (3 sub + 3 mul + 3 add) × 100 MHz = 14.4 GOPS theoretical peak
 ACC_PEAK = 14.4        # GOPS
-# On-chip BW (for kdist inputs): 3 bytes/pixel × 100 MHz = 0.3 GB/s for single feeder
-# Use AXI4-Lite peak (single-shot 4-byte writes at 100 MHz) = 0.4 GB/s as on-chip BW ceiling
-ACC_BW = 0.4
+# AXI4-Lite implementation-accurate BW: write FSM is WR_IDLE -> WR_RESP -> WR_IDLE,
+# 2 cycles per transaction at best. 4 bytes/txn x 0.5 txn/cycle x 100 MHz = 0.2 GB/s.
+# (See CMAN cman_ai_analysis.md Item 4 for the derivation.)
+ACC_BW = 0.2
 acc_roof = roofline(ai_range, ACC_PEAK, ACC_BW)
-ax.plot(ai_range, acc_roof, 'C3-', lw=2.5, label=f'sky130 accelerator roofline (peak {ACC_PEAK:.1f} GOPS, AXI4-Lite BW {ACC_BW:.1f} GB/s)')
+ax.plot(ai_range, acc_roof, 'C3-', lw=2.5, label=f'sky130 accelerator roofline (peak {ACC_PEAK:.1f} GOPS, AXI4-Lite BW {ACC_BW:.1f} GB/s, ridge {ACC_PEAK/ACC_BW:.0f} ops/byte)')
 
 # Optional reference: HBM3 streaming target (M1 system diagram)
 HBM3_BW = 16000.0      # GB/s

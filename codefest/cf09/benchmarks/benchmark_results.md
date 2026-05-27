@@ -80,7 +80,7 @@ t_total_image    = t_kernel + t_host_residual
 4. Power: 5.87 mW post-PnR @ 100 MHz typical corner (`project/m4/synth/power_report.txt`). Assumes pipeline active 100% of the kernel time. Idle power not subtracted (sky130 leakage is included in the 5.87 mW).
 
 **Memory bandwidth from interface spec:**
-- AXI4-Lite single-shot @ 100 MHz × 4 bytes/transaction = 400 MB/s peak through the slave register interface.
+- AXI4-Lite implementation-accurate @ 100 MHz × 4 bytes/txn × 0.5 txn/cycle = **200 MB/s** through the slave register interface. The 0.5 txn/cycle factor comes from the WR_IDLE → WR_RESP 2-cycle FSM in `interface.sv` (see CMAN `cman_ai_analysis.md` Item 4 for the derivation). Sky130 ridge point at this BW = 72 ops/byte.
 - M1 system diagram targets HBM3 streaming feeder at 16 TB/s, bypassing AXI for sustained throughput. Not in M4 RTL scope.
 - For the 480k-pixel batch projection, the assumed feeder rate is 3 bytes/pixel × 100 MHz = 300 MB/s, well within HBM3.
 
