@@ -133,6 +133,7 @@ course-materials/
   week01–week08/      slides/ and docs/ per week + weekXX_notes.md
   study/quiz1/        Quiz 1 cheatsheet, study guide, practice questions, results
   study/quiz2/        Quiz 2 cheatsheet, study guide, practice questions, real-attempt prep
+  study/final/        Cumulative final (wks 1-8): official Teuscher cheat sheet + study guide, practice Qs, gap analysis
 ```
 
 ---
