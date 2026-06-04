@@ -28,8 +28,10 @@ Final M4 deliverable: synthesizable, verified, benchmarked K-Means image color q
 | `bench/benchmark.md` | Measured throughput + speedup vs M1 SW baseline | §4 benchmark |
 | `bench/benchmark_data.csv` | Raw measurements behind the benchmark numbers | §4 raw data |
 | `bench/roofline_final.png` | M4 roofline with measured accelerator point (not M1 hypothetical) | §4 roofline |
-| `report/design_justification.pdf` | 9-section design justification report (2,000–5,000 words) | §5 report |
+| `report/design_justification.pdf` | 9-section design justification report (built via LaTeX, 2,000–5,000 words) | §5 report |
 | `report/design_justification.md` | Markdown source for the PDF | §5 report source |
+| `report/design_justification.tex` | LaTeX intermediate (generated from `.md` by pandoc, committed for review) | §5 report source |
+| `report/build_pdf.sh` | Build script: md → pandoc → tex → pdflatex → pdf (cleans intermediates) | reproducibility |
 | `report/figures/` | Figures referenced from the PDF report | §5 figures |
 
 ---
