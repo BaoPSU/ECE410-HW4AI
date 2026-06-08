@@ -155,6 +155,10 @@ Use the K-Means image quantization accelerator project when relevant. Key facts:
 - **Inline short definitions for jargon** — if you use a term the professor might ask about, drop a quick explanation in the same sentence either as a parenthetical or as a "which is" clause. For example "the sense amplifier (the readout circuit at the bottom of each column that converts current into an output value)" or "recurrence, which is the idea of processing one token at a time and passing a hidden state forward." Then continue the answer without breaking flow. Full one-sentence definitions for every keyword are in `course-materials/study/quiz2/keyword_definitions.md` — use that file to look up the right parenthetical wording.
 - **Include equations for concept-level formulas** — AI = FLOPs / Bytes, ridge point = Peak / BW. These are small and show understanding.
 - **Skip specific chip numbers** — do not cite exact TFLOPS ratings, exact array dimensions, or exact cycle counts. These are unrealistic to recall and look like memorization. Explain the principle and ratio instead.
+- **No specific test case values either** — do not say exact pixel RGB values, exact centroid indices, or exact test input numbers. Same rule as hardware numbers. Describe the principle: "a pixel that exactly matches one centroid so the expected squared distance is provably zero" not "pixel (255, 0, 0) matched centroid 7."
+- **Use "hardware" not "silicon"** — say "wastes hardware" not "wastes silicon", "specialized hardware" not "specialized silicon."
+- **Open with "So..." or "I used..."** — never start with "This is fundamentally a..." That phrasing is passive and detached. Own the decision from the first word.
+- **Mix in plain-language analogies** — where a concept benefits from accessible grounding, use a high-school-level analogy alongside the technical explanation. For example, compare a pipeline to a McDonald's assembly line. Lead with the analogy, then follow with the technical term and mechanism.
 - **Always relate to the K-Means project** — every answer should have a K-Means example. The distance kernel (AI = 1.68 FLOP/byte, ridge point = 18.23, near-memory PIM fix) connects to almost every topic.
 - **Slides only for facts** — only include facts and numbers from the course slides, but logical conclusions drawn from those facts do not need a citation.
 
@@ -199,6 +203,9 @@ Use the K-Means image quantization accelerator project when relevant. Key facts:
 | Answer with no concrete example | Every answer needs at least one specific example |
 | Adding facts or numbers not in the slides | Flag it or leave it out |
 | Citing exact chip numbers (TFLOPS, array size, cycle count) | Explain the principle and ratio instead |
+| Citing exact test case values (pixel RGB, centroid index) | Describe the principle: "a pixel that exactly matches one centroid so the distance is provably zero" |
+| "silicon" | "hardware" — say "wastes hardware", "specialized hardware" |
+| "This is fundamentally a hardware/software co-design decision" | "I used hardware/software co-design to find where the bottleneck was before I started designing" |
 | Skipping the formula for arithmetic intensity | AI = FLOPs / Bytes shows understanding — include it |
 | Using an acronym without spelling it out first | Write the full name in parentheses on first use |
 | Writing like a textbook definition | Write like you are explaining it out loud |
@@ -212,13 +219,13 @@ Use the K-Means image quantization accelerator project when relevant. Key facts:
 
 ### HW/SW Co-Design
 
-So HW/SW co-design is the idea that you shouldn't design your hardware first and then figure out the software later — you do both at the same time, because each one shapes the other.
+I used hardware/software co-design to find where the bottleneck was before I started designing anything, because accelerating the wrong part wastes hardware.
 
-The reason that matters is if I design a chip without knowing what algorithm is running on it, I'm going to get the memory hierarchy wrong, the datapath width wrong, the amount of on-chip SRAM wrong. And if I write an algorithm without knowing what the hardware looks like, I'm going to be bottlenecked by things I didn't have to be bottlenecked by.
+The core idea is that the algorithm and the hardware shape each other. If I design a chip without knowing what algorithm is running on it, I'll get the memory hierarchy wrong, the datapath width wrong, the amount of on-chip SRAM wrong. If I write the algorithm without knowing what the hardware looks like, I'll be bottlenecked by things I didn't have to be.
 
-If we look at it from a memory perspective, that's really where co-design pays off the most. Moving data off-chip is way more expensive than doing actual computation — energy-wise, latency-wise, bandwidth-wise. So the algorithm needs to be structured to minimize those trips, and the hardware needs to be sized to support that.
+Where this really pays off is memory. Moving data off-chip is far more expensive than doing actual computation, energy-wise and latency-wise. So the algorithm needs to minimize those trips and the hardware needs to be sized around that data movement pattern.
 
-A good example from my K-Means project — the distance kernel was memory-bound at an arithmetic intensity of 1.68 FLOP/byte against a ridge point of 18.23. The fix wasn't to write better software or buy a faster chip independently. The fix was to co-design: offload the kernel to a near-memory PIM chiplet where the bandwidth clears the ridge point. That's co-design in practice.
+A good example from my K-Means project: I profiled the distance kernel first, found it was memory-bound at an arithmetic intensity of 1.68 FLOP/byte against a ridge point of 18.23, then co-designed the fix. I offloaded that kernel to a near-memory PIM chiplet where the bandwidth clears the ridge point. Better software alone or a faster chip alone would not have solved it.
 
 The main takeaway is the best systems are the ones where the hardware and the algorithm were designed around each other from the start.
 
